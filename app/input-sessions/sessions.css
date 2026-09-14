@@ -66,3 +66,43 @@
 @media(max-width:900px){.sess .meta{grid-template-columns:1fr 1fr}.sess .rptGrid,.sess .summaryStrip{grid-template-columns:1fr 1fr}.sess .toolbar{top:0}}
 @media(max-width:600px){.sess .meta,.sess .rptGrid,.sess .summaryStrip{grid-template-columns:1fr}.sess .wrap{padding:18px 16px 60px}}
 @media print{.notice,.siteHeader,.sess .intro,.sess .toolbar,.sess .noPrint,footer{display:none!important}.sess{background:white}.sess .wrap{padding:0;max-width:none}.sess .card{break-inside:avoid;border:0;padding:0 0 18px;margin-bottom:8px}.sess .printOnly{display:block}.sess th{background:#e9edf1;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sess .badge,.sess .bar{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+/* ---- research context, sync, indicator badges ---- */
+.sess details.context{margin:0 0 12px;border:1px solid #d9dfe4;background:#f4f6f8;border-radius:3px}
+.sess details.context summary{cursor:pointer;padding:10px 14px;font-size:13px;font-weight:900;color:var(--blue2);list-style:none}
+.sess details.context summary::-webkit-details-marker{display:none}
+.sess details.context summary:before{content:"▸ ";color:var(--green2)}
+.sess details.context[open] summary:before{content:"▾ "}
+.sess details.context ul{margin:0;padding:0 18px 12px 32px;font-size:13px;line-height:1.55;color:#2a3a52}
+.sess details.context li{margin:5px 0}
+.sess .syncChip{font-size:11px;font-weight:900;letter-spacing:.4px;padding:6px 10px;border-radius:14px;background:#e9edf1;color:#324157}
+.sess .syncChip.online{background:#e6f3ec;color:var(--green2)}
+.sess .syncChip.offline{background:#fdecea;color:#b3261e}
+.sess .syncChip.checking{background:#fff4cd;color:#7a5c00}
+.sess .card.passcode{border-left:6px solid var(--gold)}
+.sess .passRow{display:flex;gap:10px;flex-wrap:wrap}
+.sess .passRow input{flex:1;min-width:200px;border:1px solid #ccd6db;padding:12px;font-size:16px}
+.sess .offlineNote{background:#fdecea;color:#7a1e18;padding:10px 14px;font-size:13px;margin:0 0 14px;border-radius:3px}
+.sess .anchor{display:inline-block;font-size:10px;font-weight:900;letter-spacing:.5px;padding:3px 7px;border-radius:2px;white-space:nowrap}
+.sess .anchor.fed{background:var(--green2);color:white}
+.sess .anchor.code{background:var(--blue2);color:white}
+.sess .anchor.policy{background:#e9edf1;color:#324157}
+.sess .anchor.process{background:#fff4cd;color:#7a5c00}
+/* ---- tablet (iPad landscape and portrait) ---- */
+.sess .chip,.sess .tab,.sess .btn{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media(max-width:1366px){
+  .sess .chip{min-height:44px;padding:8px 14px;font-size:15px}
+  .sess .btn{min-height:44px;padding:10px 14px;font-size:12px}
+  .sess .tab{min-height:44px;padding:10px 16px;font-size:14px}
+  .sess label.field input,.sess label.field select,.sess label.field textarea,.sess .other input{font-size:16px}
+  .sess label.field select{min-height:44px}
+  .sess label.field textarea{min-height:90px}
+  .sess .other input{min-height:44px}
+  .sess .sub p{font-size:14px}
+  .sess .hint{font-size:13px}
+  .sess table{font-size:13px}
+  .sess .meta{grid-template-columns:repeat(2,1fr)}
+  .sess .toolbar{gap:10px}
+}
+@media(max-width:1100px){
+  .sess .rptGrid{grid-template-columns:1fr}
+}

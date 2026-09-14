@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
-import { CROSSWALK, DEFAULT_TEAM_NAMES, QUESTIONS, type Question, type SubQuestion } from "./config";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ANCHOR_LABEL, DEFAULT_TEAM_NAMES, INDICATORS, LAYERS, QUESTIONS, findIndicator, type Question, type SubQuestion } from "./config";
+import { deleteRows, fetchRows, ping, upsertRows } from "./sync";
 import "./sessions.css";
 
 type Entry = {
@@ -28,6 +29,9 @@ type Team = {
 type Store = { version: 1; teams: Team[]; updatedAt: string };
 
 const KEY = "tape-input-sessions-v1";
+const PASS_KEY = "tape-input-sessions-passcode";
+const POLL_MS = 15000;
+const FLUSH_MS = 800;
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -114,7 +118,7 @@ function entryLabel(q: Question, e: Entry) {
 }
 
 function shortDisposition(value: string) {
-  return value.replace("Move to ", "").replace(" compliance monitoring", " compliance").replace(" program review", "").replace(" completely", "");
+  return value.replace(/\s*\((Layer \d|State Plan|Form 14-1)\)$/, "").replace(" completely", "");
 }
 
 /* ---------- report math ---------- */
@@ -176,7 +180,7 @@ function dispositionRows(teams: Team[]): DispositionRow[] {
         const row = map.get(key) ?? {
           item,
           byTeam: {},
-          suggested: CROSSWALK.find((c) => c.item.toLowerCase() === key)?.suggested ?? "",
+          suggested: findIndicator(item)?.suggested ?? "",
           questions: new Set<number>(),
         };
         row.questions.add(q.number);
@@ -214,10 +218,11 @@ function buildMarkdown(store: Store) {
   for (const t of teams) lines.push(`| ${t.name} | ${t.date || "—"} | ${t.facilitator || "—"} | ${t.participants || "—"} |`);
   const disp = dispositionRows(teams);
   if (disp.length) {
-    lines.push(``, `## Disposition matrix`, ``, `| Item | Named in | ${teams.map((t) => t.name).join(" | ")} | Suggested home (crosswalk) | Agreement |`, `|---|---|${teams.map(() => "---").join("|")}|---|---|`);
+    lines.push(``, `## Disposition matrix`, ``, `| Item | Authority | Named in | ${teams.map((t) => t.name).join(" | ")} | Brief's suggestion | Agreement |`, `|---|---|---|${teams.map(() => "---").join("|")}|---|---|`);
     for (const row of disp) {
       const a = agreement(row, teams);
-      lines.push(`| ${row.item} | Q${[...row.questions].sort().join(", Q")} | ${teams.map((t) => [...(row.byTeam[t.id] ?? [])].map(shortDisposition).join("; ") || "—").join(" | ")} | ${row.suggested || "—"} | ${a.best ? `${shortDisposition(a.best)} (${a.count}/${teams.length})` : "—"} |`);
+      const ind = findIndicator(row.item);
+      lines.push(`| ${row.item} | ${ind ? ANCHOR_LABEL[ind.anchor] : "—"} | Q${[...row.questions].sort().join(", Q")} | ${teams.map((t) => [...(row.byTeam[t.id] ?? [])].map(shortDisposition).join("; ") || "—").join(" | ")} | ${row.suggested ? shortDisposition(row.suggested) : "—"} | ${a.best ? `${shortDisposition(a.best)} (${a.count}/${teams.length})` : "—"} |`);
     }
   }
   for (const q of QUESTIONS) {
@@ -354,7 +359,7 @@ function TeamView({ team, canRemove, onChange, onRemove }: { team: Team; canRemo
     <div>
       <div className="card">
         <h2><small>SESSION DETAILS</small>{team.name || "Team"}</h2>
-        <p className="hint">Enter the basics for this small-group session. Everything saves automatically in this browser.</p>
+        <p className="hint">Enter the basics for this small-group session. Everything saves automatically and, once connected with the passcode, is shared with the other facilitators.</p>
         <div className="meta">
           <label className="field">Team name<input type="text" value={team.name} onChange={(ev) => onChange({ ...team, name: ev.target.value })} /></label>
           <label className="field">Session date<input type="date" value={team.date} onChange={(ev) => onChange({ ...team, date: ev.target.value })} /></label>
@@ -370,6 +375,10 @@ function TeamView({ team, canRemove, onChange, onRemove }: { team: Team; canRemo
           <div className="card" key={q.id}>
             <h2><small>QUESTION {q.number}</small>{q.title}</h2>
             <p className="hint">{q.entryHint}</p>
+            <details className="context">
+              <summary>From the research: talking points for this question</summary>
+              <ul>{q.context.map((c) => <li key={c}>{c}</li>)}</ul>
+            </details>
             {q.mode === "list" && entries.length === 0 && <div className="empty">No items yet. Add the first item the team names.</div>}
             {entries.map((entry, i) => (
               <EntryEditor
@@ -453,17 +462,19 @@ function ReportView({ store }: { store: Store }) {
 
       <div className="card">
         <h2><small>KEEP · MOVE · REMOVE</small>Disposition matrix</h2>
-        <p className="hint">Every item named under Question 1 or 2, with each team&apos;s answer to &quot;Where should this item live?&quot; and the suggested home from the compliance crosswalk.</p>
+        <p className="hint">Every item named under Question 1 or 2, with the authority behind it from the redesign brief&apos;s audit, each team&apos;s answer to &quot;Where should this item live?&quot;, and the brief&apos;s suggested home.</p>
         {disp.length === 0 ? <p className="hint">No items yet.</p> : (
           <div className="tableWrap">
             <table>
-              <thead><tr><th>Item</th><th className="c">Named in</th>{teams.map((t) => <th key={t.id}>{t.name}</th>)}<th>Crosswalk suggestion</th><th>Agreement</th></tr></thead>
+              <thead><tr><th>Item</th><th>Authority</th><th className="c">Named in</th>{teams.map((t) => <th key={t.id}>{t.name}</th>)}<th>Brief&apos;s suggestion</th><th>Agreement</th></tr></thead>
               <tbody>
                 {disp.map((row) => {
                   const a = agreement(row, teams);
+                  const ind = findIndicator(row.item);
                   return (
                     <tr key={row.item}>
                       <td>{row.item}</td>
+                      <td>{ind ? <span className={`anchor ${ind.anchor}`}>{ANCHOR_LABEL[ind.anchor]}</span> : "—"}</td>
                       <td className="c">Q{[...row.questions].sort().join(", Q")}</td>
                       {teams.map((t) => <td key={t.id}>{[...(row.byTeam[t.id] ?? [])].map(shortDisposition).join("; ") || "—"}</td>)}
                       <td>{row.suggested ? shortDisposition(row.suggested) : "—"}</td>
@@ -526,18 +537,30 @@ function ReportView({ store }: { store: Store }) {
       </div>
 
       <div className="card">
-        <h2><small>REFERENCE</small>TAPE to compliance crosswalk</h2>
-        <p className="hint">Starting point for the &quot;where should it live&quot; discussion: each TAPE item, the requirement behind it, and a suggested home once program review and compliance monitoring are separated.</p>
+        <h2><small>REFERENCE</small>The four-layer architecture from the brief</h2>
+        <p className="hint">Each layer has one job. The &quot;Where should it live?&quot; options in Questions 1 and 2 map to these layers.</p>
+        <ul className="noteList">{LAYERS.map((l) => <li key={l.name}><b>{l.name}:</b> {l.detail}</li>)}</ul>
+      </div>
+
+      <div className="card">
+        <h2><small>REFERENCE</small>Every TAPE indicator, audited against its authority</h2>
+        <p className="hint">From the August 2026 redesign brief: the 24 scored indicators in the 2025-26 tool plus the process elements around them, with the authority that actually supports each and the brief&apos;s suggested home.</p>
         <div className="tableWrap">
           <table>
-            <thead><tr><th>TAPE item</th><th>Basis</th><th>Citation</th><th>Suggested home</th></tr></thead>
-            <tbody>{CROSSWALK.map((c) => <tr key={c.item}><td>{c.item}</td><td>{c.basis}</td><td>{c.citation}</td><td>{shortDisposition(c.suggested)}</td></tr>)}</tbody>
+            <thead><tr><th>Code</th><th>Indicator</th><th>Authority</th><th>What the brief found</th><th>Suggested home</th></tr></thead>
+            <tbody>{INDICATORS.map((c) => <tr key={`${c.code}-${c.name}`}><td>{c.code === "Process" ? "—" : c.code}</td><td>{c.name}</td><td><span className={`anchor ${c.anchor}`}>{ANCHOR_LABEL[c.anchor]}</span></td><td>{c.basis}</td><td>{shortDisposition(c.suggested)}</td></tr>)}</tbody>
           </table>
         </div>
-        <p className="crossNote">Citations are a working reconstruction and should be verified against the earlier TAPE and compliance analysis before the crosswalk is shared outside the team. Edit the list in app/input-sessions/config.ts.</p>
+        <p className="crossNote">The brief is a research decision aid, not a legal opinion. Verify flagged items (the MOA rescission, the approved State Plan text) before citing externally. Edit this list in app/input-sessions/config.ts.</p>
       </div>
     </div>
   );
+}
+
+type SyncState = "locked" | "checking" | "online" | "offline";
+
+function loadPasscode() {
+  try { return window.localStorage.getItem(PASS_KEY) ?? ""; } catch { return ""; }
 }
 
 export default function SessionsApp() {
@@ -545,11 +568,26 @@ export default function SessionsApp() {
   const [tab, setTab] = useState<string>(() => store.teams[0]?.id ?? "report");
   const [savedAt, setSavedAt] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [passcode, setPasscode] = useState<string>(loadPasscode);
+  const [codeInput, setCodeInput] = useState("");
+  const [sync, setSync] = useState<SyncState>(() => (loadPasscode() ? "checking" : "locked"));
+  const [syncNote, setSyncNote] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  /** Update state and persist to this browser in one step. */
-  const commit = (next: Store) => {
-    setStore(next);
+  // Latest values for timers and pollers.
+  const storeRef = useRef(store);
+  const passRef = useRef(passcode);
+  const syncRef = useRef(sync);
+  useEffect(() => {
+    storeRef.current = store;
+    passRef.current = passcode;
+    syncRef.current = sync;
+  });
+  const dirty = useRef(new Set<string>());
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const stamps = useRef(new Map<string, string>());
+
+  const saveLocal = (next: Store) => {
     try {
       window.localStorage.setItem(KEY, JSON.stringify({ ...next, updatedAt: new Date().toISOString() }));
       setSavedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
@@ -557,6 +595,145 @@ export default function SessionsApp() {
       setSavedAt("not saved (storage unavailable)");
     }
   };
+
+  /** Push one team to the shared table. */
+  const flush = async (id: string) => {
+    timers.current.delete(id);
+    const current = storeRef.current;
+    const index = current.teams.findIndex((t) => t.id === id);
+    if (index < 0 || !passRef.current || syncRef.current === "locked") return;
+    try {
+      const rows = await upsertRows(passRef.current, [{ id, position: index, data: current.teams[index] }]);
+      for (const r of rows) stamps.current.set(r.id, r.updated_at);
+      dirty.current.delete(id);
+      setSync("online");
+      setSyncNote(`Shared ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
+    } catch {
+      setSync("offline");
+      setSyncNote("Could not reach shared storage. Saved on this device; will retry.");
+    }
+  };
+
+  const schedule = (id: string) => {
+    dirty.current.add(id);
+    const existing = timers.current.get(id);
+    if (existing) clearTimeout(existing);
+    timers.current.set(id, setTimeout(() => void flush(id), FLUSH_MS));
+  };
+
+  /** Update state, persist locally, and sync any team that changed. */
+  const commit = (next: Store) => {
+    const prev = storeRef.current;
+    setStore(next);
+    storeRef.current = next;
+    saveLocal(next);
+    const prevById = new Map(prev.teams.map((t) => [t.id, t]));
+    next.teams.forEach((t, i) => {
+      if (prevById.get(t.id) !== t || prev.teams[i]?.id !== t.id) schedule(t.id);
+    });
+    const removed = prev.teams.filter((t) => !next.teams.some((n) => n.id === t.id)).map((t) => t.id);
+    if (removed.length && passRef.current && syncRef.current !== "locked") {
+      for (const id of removed) { dirty.current.delete(id); stamps.current.delete(id); }
+      void deleteRows(passRef.current, removed).catch(() => { setSync("offline"); setSyncNote("Could not remove the team from shared storage."); });
+    }
+  };
+
+  /** Replace everything on the server with the given store (import, reset). */
+  const replaceAll = async (next: Store) => {
+    const prev = storeRef.current;
+    setStore(next);
+    storeRef.current = next;
+    saveLocal(next);
+    if (!passRef.current || syncRef.current === "locked") return;
+    try {
+      const gone = prev.teams.filter((t) => !next.teams.some((n) => n.id === t.id)).map((t) => t.id);
+      await deleteRows(passRef.current, gone);
+      const rows = await upsertRows(passRef.current, next.teams.map((t, i) => ({ id: t.id, position: i, data: t })));
+      stamps.current = new Map(rows.map((r) => [r.id, r.updated_at]));
+      dirty.current.clear();
+      setSync("online");
+      setSyncNote(`Shared ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
+    } catch {
+      setSync("offline");
+      setSyncNote("Could not reach shared storage. Saved on this device.");
+    }
+  };
+
+  /** Pull the latest rows and merge in anything another device changed. */
+  const pull = async (code: string, initial: boolean) => {
+    const rows = await fetchRows<Team>(code);
+    const local = storeRef.current;
+    if (initial && rows.length === 0 && local.teams.length) {
+      // First device online: seed the shared table with what this browser has.
+      const pushed = await upsertRows(code, local.teams.map((t, i) => ({ id: t.id, position: i, data: t })));
+      stamps.current = new Map(pushed.map((r) => [r.id, r.updated_at]));
+      return;
+    }
+    const serverIds = new Set(rows.map((r) => r.id));
+    const localById = new Map(local.teams.map((t) => [t.id, t]));
+    let changed = initial;
+    const teams: Team[] = rows.map((r) => {
+      const mine = localById.get(r.id);
+      if (mine && (dirty.current.has(r.id) || stamps.current.get(r.id) === r.updated_at)) return mine;
+      changed = true;
+      stamps.current.set(r.id, r.updated_at);
+      return normalize({ teams: [r.data] }).teams[0];
+    });
+    for (const t of local.teams) {
+      if (!serverIds.has(t.id) && dirty.current.has(t.id)) { teams.push(t); }
+      else if (!serverIds.has(t.id)) changed = true;
+    }
+    if (!changed) return;
+    const next: Store = { version: 1, teams, updatedAt: new Date().toISOString() };
+    setStore(next);
+    storeRef.current = next;
+    saveLocal(next);
+    setTab((current) => (current === "report" || teams.some((t) => t.id === current) ? current : teams[0]?.id ?? "report"));
+  };
+
+  const connect = async (code: string) => {
+    setSync("checking");
+    setSyncNote("Connecting…");
+    try {
+      const ok = await ping(code);
+      if (!ok) {
+        setSync("locked");
+        setSyncNote("That passcode was not accepted.");
+        return;
+      }
+      passRef.current = code;
+      setPasscode(code);
+      try { window.localStorage.setItem(PASS_KEY, code); } catch { /* ignore */ }
+      await pull(code, true);
+      setSync("online");
+      setSyncNote(`Connected ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
+    } catch {
+      setSync("offline");
+      setSyncNote("Could not reach shared storage. Working from this device.");
+    }
+  };
+
+  // Connect once on load if a passcode is remembered.
+  useEffect(() => {
+    const code = loadPasscode();
+    if (!code) return;
+    const timer = setTimeout(() => void connect(code), 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Poll for other devices' changes while online, and retry when offline.
+  useEffect(() => {
+    if (sync === "locked" || sync === "checking") return;
+    const timer = setInterval(() => {
+      const code = passRef.current;
+      if (!code) return;
+      for (const id of [...dirty.current]) if (!timers.current.has(id)) void flush(id);
+      pull(code, false).then(() => { if (syncRef.current === "offline") { setSync("online"); setSyncNote("Reconnected"); } }).catch(() => { setSync("offline"); setSyncNote("Could not reach shared storage. Saved on this device; will retry."); });
+    }, POLL_MS);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sync]);
 
   const markdown = useMemo(() => buildMarkdown(store), [store]);
   const activeTeam = store.teams.find((t) => t.id === tab);
@@ -568,22 +745,22 @@ export default function SessionsApp() {
     setTab(team.id);
   };
   const removeTeam = (id: string) => {
-    if (!window.confirm("Remove this team and all of its answers?")) return;
+    if (!window.confirm("Remove this team and all of its answers for everyone?")) return;
     const teams = store.teams.filter((t) => t.id !== id);
     commit({ ...store, teams });
     setTab(teams[0]?.id ?? "report");
   };
   const reset = () => {
-    if (!window.confirm("Clear every team's answers? Export first if you want a backup.")) return;
+    if (!window.confirm("Clear every team's answers? This clears the shared session for everyone. Export first if you want a backup.")) return;
     const fresh = defaultStore();
-    commit(fresh);
+    void replaceAll(fresh);
     setTab(fresh.teams[0].id);
   };
   const importFile = async (file: File) => {
     try {
       const parsed = normalize(JSON.parse(await file.text()));
-      if (!window.confirm(`Replace the current data with ${file.name}?`)) return;
-      commit(parsed);
+      if (!window.confirm(`Replace the current data with ${file.name}? This replaces the shared session for everyone.`)) return;
+      await replaceAll(parsed);
       setTab(parsed.teams[0].id);
     } catch {
       window.alert("That file could not be read as a TAPE input sessions export.");
@@ -598,10 +775,19 @@ export default function SessionsApp() {
       download(`TAPE_Input_Sessions_Report_${stamp()}.md`, markdown, "text/markdown");
     }
   };
+  const disconnect = () => {
+    try { window.localStorage.removeItem(PASS_KEY); } catch { /* ignore */ }
+    passRef.current = "";
+    setPasscode("");
+    setSync("locked");
+    setSyncNote("");
+  };
+
+  const syncLabel = sync === "online" ? "Shared: connected" : sync === "checking" ? "Shared: connecting…" : sync === "offline" ? "Shared: offline" : "Shared: not connected";
 
   return (
     <main className="sess">
-      <div className="notice">INPUT SESSIONS <span>Facilitator data collection for the TAPE redesign. Data stays in this browser until you export it.</span></div>
+      <div className="notice">INPUT SESSIONS <span>Facilitator data collection for the TAPE redesign. Four teams, one shared session.</span></div>
       <header className="siteHeader">
         <Link className="brand" href="/" aria-label="TAPE Resource Hub home"><span className="stateMark">AL</span><span><b>TAPE</b><small>RESOURCE HUB · ALABAMA CTE</small></span></Link>
         <nav aria-label="Primary navigation"><Link href="/">Resource Hub</Link><Link className="navMore" href="/input-sessions">Input Sessions</Link></nav>
@@ -609,8 +795,8 @@ export default function SessionsApp() {
 
       <section className="intro">
         <p className="eyebrow"><span /> SMALL-GROUP INPUT SESSIONS</p>
-        <h1>What stays in TAPE, what moves to compliance, what goes away.</h1>
-        <p>Alabama is the last state reviewing CTE this way. Use one tab per team to capture what each group says as they say it, then open the report to see where the teams agree, which items should move to Perkins, fiscal, or civil rights monitoring, and what can be removed completely.</p>
+        <h1>What stays in TAPE, what moves to another layer, what goes away.</h1>
+        <p>Alabama is the last state still running a scored, program-by-program, documentation-based review. Zero of the ~24 scored indicators are federally required as written, and the one federal rule that forced on-site review was rescinded in July 2026. Use one tab per team to capture what each group says as they say it, then open the report to see where the teams agree.</p>
       </section>
 
       <div className="toolbar noPrint">
@@ -626,15 +812,29 @@ export default function SessionsApp() {
         <button type="button" className="btn" onClick={() => fileRef.current?.click()}>Import JSON</button>
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(ev) => { const f = ev.target.files?.[0]; if (f) void importFile(f); ev.target.value = ""; }} />
         <button type="button" className="btn danger" onClick={reset}>Reset</button>
-        <span className="saved">{savedAt ? `Saved ${savedAt}` : store.updatedAt ? `Loaded ${new Date(store.updatedAt).toLocaleString()}` : "Not saved yet"}</span>
+        <span className={`syncChip ${sync}`} title={syncNote}>{syncLabel}</span>
+        <span className="saved">{savedAt ? `Saved on this device ${savedAt}` : ""}</span>
       </div>
 
       <div className="wrap">
+        {sync === "locked" && (
+          <div className="card passcode noPrint">
+            <h2><small>SHARED SESSION</small>Enter the facilitator passcode</h2>
+            <p className="hint">With the passcode, every facilitator&apos;s iPad or laptop writes to the same shared session and the combined report includes all four teams. Without it, answers stay on this device only.</p>
+            <form className="passRow" onSubmit={(ev) => { ev.preventDefault(); if (codeInput.trim()) void connect(codeInput.trim()); }}>
+              <input type="password" autoComplete="off" autoCapitalize="none" placeholder="Passcode" value={codeInput} onChange={(ev) => setCodeInput(ev.target.value)} />
+              <button type="submit" className="btn primary">Connect</button>
+            </form>
+            {syncNote && <p className="hint" style={{ marginTop: 8 }}>{syncNote}</p>}
+          </div>
+        )}
+        {sync !== "locked" && syncNote && sync === "offline" && <p className="offlineNote noPrint">{syncNote}</p>}
         {tab === "report" || !activeTeam ? (
           <ReportView store={store} />
         ) : (
           <TeamView team={activeTeam} canRemove={store.teams.length > 1} onChange={updateTeam} onRemove={() => removeTeam(activeTeam.id)} />
         )}
+        {sync !== "locked" && <p className="hint noPrint" style={{ marginTop: 10 }}>Connected to the shared session. <button type="button" className="btn link" onClick={disconnect}>Disconnect this device</button></p>}
       </div>
 
       <footer><div className="brand"><span className="stateMark">AL</span><span><b>TAPE</b><small>RESOURCE HUB · ALABAMA CTE</small></span></div><p>Better evidence. Better programs. Better Alabama.</p><div><Link href="/">Back to the Resource Hub</Link><small>Facilitator tool · Not the official Cognia platform</small></div></footer>
