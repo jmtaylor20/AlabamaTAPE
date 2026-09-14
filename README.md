@@ -96,3 +96,16 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## TAPE Input Sessions (`/input-sessions`)
+
+Facilitator tool for the small-group TAPE redesign sessions. One tab per team,
+checkbox prompts for the four session questions plus a keep / move / remove
+disposition for every TAPE item, and a combined report that shows where the
+teams agree.
+
+- Answers save automatically in the browser (`localStorage`). Use **Export JSON**
+  for a backup or to move data to another computer, and **Import JSON** to load it.
+- **Print / PDF**, **Copy report** (Markdown), and **CSV** produce the combined report.
+- Prompts, picklists, and the TAPE-to-compliance crosswalk live in
+  `app/input-sessions/config.ts`.

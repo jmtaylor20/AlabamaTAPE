@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 const templates = [
@@ -96,6 +97,7 @@ export default function Home() {
         <a className="brand" href="#top" aria-label="TAPE Resource Hub home"><span className="stateMark">AL</span><span><b>TAPE</b><small>RESOURCE HUB · ALABAMA CTE</small></span></a>
         <nav aria-label="Primary navigation">
           {nav.slice(0, 6).map((item) => <a key={item} href={`#${item.toLowerCase().replaceAll(" ", "-")}`}>{item}</a>)}
+          <Link href="/input-sessions">Input Sessions</Link>
           <a className="navMore" href="#all-resources">All resources ↓</a>
         </nav>
       </header>
