@@ -96,3 +96,35 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## TAPE Input Sessions (`/input-sessions`)
+
+Facilitator tool for the small-group TAPE redesign sessions. One tab per team
+(four by default), checkbox prompts for the four session questions plus a
+"where should it live" disposition for every TAPE indicator, research talking
+points from the August 2026 redesign brief, and a combined report that shows
+where the teams agree. Built for iPad landscape and portrait as well as laptops.
+
+- **Shared session.** Facilitators enter a passcode once per device; every
+  device then reads and writes the same `tape_teams` table in Supabase (project
+  `taylormade-growth-app`, prefixed `tape_`, easy to drop afterwards). Answers
+  also save locally, so a device keeps working if the connection drops and
+  retries on its own. Other devices' changes appear within about 15 seconds.
+- Keep one facilitator per team tab at a time; if two devices edit the same
+  team at once, the last save wins for that team.
+- **Print / PDF**, **Copy report** (Markdown), **CSV**, and **Export / Import JSON**
+  work on the combined data.
+- Prompts, picklists, the indicator audit, and the four-layer architecture text
+  live in `app/input-sessions/config.ts`. Supabase URL and publishable key live
+  in `app/input-sessions/sync.ts` (override with `NEXT_PUBLIC_SUPABASE_URL` and
+  `NEXT_PUBLIC_SUPABASE_KEY`). The passcode is set in the database policy
+  (function `tape_key_ok`).
+
+To remove the shared storage when the sessions are done:
+
+```sql
+drop table public.tape_teams;
+drop function public.tape_ping();
+drop function public.tape_key_ok();
+drop function public.tape_touch_updated_at();
+```
