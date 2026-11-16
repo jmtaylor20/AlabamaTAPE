@@ -36,12 +36,17 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <li>Invitation-only sign-in with authenticator app verification</li>
             <li>LEAs, schools, programs, clusters, teachers</li>
             <li>Roles, seats, and an append-only audit log</li>
+            <li>The 2026-2027 instrument, locked once published</li>
+            <li>Declarations with a one-time review window and a change history</li>
+            <li>Cycles, nominations, the seeded random draw, scheduling, and embargoed release</li>
           </ul>
-          <p className="mt-3 text-sm text-ink-muted">Next: the versioned instrument, declarations, selection, scheduling, and release.</p>
+          <p className="mt-3 text-sm text-ink-muted">Next: evidence upload and Director self-scoring.</p>
         </Card>
       </div>
       <div className="mt-6 flex flex-wrap gap-2">
         {user.leaIds.length > 0 && <LinkButton href="/app/lea">Open my LEA</LinkButton>}
+        {user.isStaff && <LinkButton href="/app/reviews">Reviews</LinkButton>}
+        {user.isStateAdmin && <LinkButton href="/app/admin/cycles">Cycles</LinkButton>}
         {user.isStateAdmin && <LinkButton href="/app/admin/leas">Manage LEAs</LinkButton>}
         {user.isStateAdmin && <LinkButton href="/app/admin/users">Manage users</LinkButton>}
       </div>
