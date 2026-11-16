@@ -35,7 +35,7 @@ export default async function ReviewWorkspacePage({ params, searchParams }: { pa
     <>
       <PageHeader eyebrow={`${lea?.name ?? ""} / ${year?.label ?? ""} / Review`} title={`${dp.program_code} ${catalog?.name ?? "Program"}`}
         description={`${school ? `${school.school_code} ${school.name}` : "System-wide"}. ${teachers.map((t) => t.display_name).join(", ") || "No teachers listed"}. Visit ${fmtRange(site.visit_start, site.visit_end)}. Reviewers: ${site.reviewers.map((r) => r.display_name ?? r.email).join(", ") || "none"}.`}
-        actions={<><LinkButton href={`/app/programs/${id}`}>Evidence and self-scores</LinkButton><LinkButton href={`/app/programs/${id}/report`}>Report</LinkButton><LinkButton href={`/app/admin/reviews/${site.lea_review_id}`}>LEA review</LinkButton>{site.locked ? <Badge tone="good">Finalized</Badge> : <Badge>{statusLabel(site.status)}</Badge>}</>} />
+        actions={<><LinkButton href={`/app/programs/${id}`}>Evidence and self-scores</LinkButton><LinkButton href={`/app/programs/${id}/report`}>Report</LinkButton>{site.locked && <LinkButton href={`/app/programs/${id}/pip`}>PIP</LinkButton>}<LinkButton href={`/app/admin/reviews/${site.lea_review_id}`}>LEA review</LinkButton>{site.locked ? <Badge tone="good">Finalized</Badge> : <Badge>{statusLabel(site.status)}</Badge>}</>} />
       <Notices {...notices} />
       {site.locked && <div className="mb-4"><Alert tone="success">Finalized {fmtDateTime(site.finalized_at)}. Scores, findings, checks, and samples are locked. Only the State Admin can reopen, with a reason.</Alert></div>}
       {!roles.isReviewer && !roles.admin && <div className="mb-4"><Alert tone="info">You are viewing this review. Only assigned reviewers and the State Admin can enter records.</Alert></div>}

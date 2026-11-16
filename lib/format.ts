@@ -49,3 +49,13 @@ export function eligibilityReason(d: DeclaredLike, catalogActive = true): string
 export function windowOpen(w: { closes_at: string; confirmed_at: string | null; closed_early_at: string | null } | null | undefined) {
   return !!w && !w.confirmed_at && !w.closed_early_at && new Date(w.closes_at).getTime() > Date.now();
 }
+
+/** Today's date as YYYY-MM-DD. Server pages call this once per request. */
+export function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Which month (1 to 12) of a twelve-month PIP clock we are in. */
+export function pipMonth(startsOn: string) {
+  return Math.min(12, Math.max(1, Math.floor((Date.now() - new Date(startsOn).getTime()) / (30.4375 * 86400000)) + 1));
+}

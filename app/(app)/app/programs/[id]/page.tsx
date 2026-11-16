@@ -36,7 +36,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
     <>
       <PageHeader eyebrow={`${lea?.name ?? ""} / ${year?.label ?? ""}`} title={`${dp.program_code} ${catalog?.name ?? "Program"}`}
         description={`${school ? `${school.school_code} ${school.name}` : "System-wide"}. ${teachers.length ? `Teachers: ${teachers.map((t) => t.display_name).join(", ")}.` : "No teachers listed."} ${dp.delivery_type}${dp.dual_scenario ? ` scenario ${dp.dual_scenario}` : ""}${dp.ase_accredited ? ", ASE accredited" : ""}${dp.epic_requested ? ", EPIC requested" : ""}.`}
-        actions={<><LinkButton href="/app/programs">All programs</LinkButton><LinkButton href={`${here}/form-14-1`}>Form 14-1 {form ? <Badge tone={form.status === "submitted" ? "good" : "warn"}>{form.status}</Badge> : null}</LinkButton>{roles.staff && site && <LinkButton href={`/app/programs/${id}/review`} variant="primary">Review workspace</LinkButton>}{site?.locked && <LinkButton href={`/app/programs/${id}/report`}>Report</LinkButton>}</>} />
+        actions={<><LinkButton href="/app/programs">All programs</LinkButton><LinkButton href={`${here}/form-14-1`}>Form 14-1 {form ? <Badge tone={form.status === "submitted" ? "good" : "warn"}>{form.status}</Badge> : null}</LinkButton>{roles.staff && site && <LinkButton href={`/app/programs/${id}/review`} variant="primary">Review workspace</LinkButton>}{site?.locked && <LinkButton href={`/app/programs/${id}/report`}>Report</LinkButton>}{site?.pip && <LinkButton href={`/app/programs/${id}/pip`}>PIP <Badge tone={site.pip.status === "open" ? "warn" : "good"}>{site.pip.status}</Badge></LinkButton>}</>} />
       <Notices {...notices} />
 
       {site?.deskAudit?.sent_at && (

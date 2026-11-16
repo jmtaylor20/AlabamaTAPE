@@ -9,12 +9,20 @@ export type AuditSample = { id: string; qpi_code: string; kind: string; items_sa
 export type OnsiteCheck = { subitem_id: string; state: string; note: string | null; captured_at: string };
 export type EpicScoreRow = { descriptor_id: string; value: string; na_reason: string | null; comment: string | null; version: number };
 export type SectionComment = { section_code: string; author_role: string; body: string };
+export type PipGoal = { id: string; finding_id: string | null; qpi_code: string; action_steps: string; status: string | null; date_accomplished: string | null; sort: number };
+export type PipInfo = {
+  id: string; status: string; ten_day_close: string; starts_on: string; due_on: string; created_at: string; closed_at: string | null; close_note: string | null;
+  goals: PipGoal[]; progress: { month: number; body: string; progress_lacking: boolean; entered_at: string }[];
+  notes: { id: string; goal_id: string | null; author_role: string; body: string; evidence_file_id: string | null; created_at: string; author: string | null }[];
+  escalations: { month: number; open_goals: number; notified: string[]; notified_at: string }[];
+};
 export type SiteInfo = {
   id: string; director_submitted_at: string | null; director_submitted_by: string | null; scoring_extended_until: string | null; program_review_id: string; status: string; lea_review_id: string;
   released_at: string | null; visit_start: string | null; visit_end: string | null; evidence_due: string | null; open: boolean; scores: ScoreRow[];
   epic: boolean; finalized_at: string | null; finalized_by: string | null; locked: boolean; reviewers: { display_name: string | null; email: string; assignment_role: string }[];
   deskAudit: { id: string; initial_findings: string | null; sent_at: string | null } | null; findings: Finding[]; samples: AuditSample[]; checks: OnsiteCheck[]; epicScores: EpicScoreRow[]; comments: SectionComment[];
   meetings: { id: string; held_on: string; attendees: string; notes: string | null }[]; finalizations: { kind: string; reason: string | null; created_at: string; actor_id: string }[]; applicableCodes: string[];
+  pip: PipInfo | null;
 };
 
 /** Everything the program pages need, loaded under the caller's own policies. */
@@ -79,7 +87,20 @@ export async function loadProgram(id: string, user: CurrentUser) {
         reviewers: (pr?.review_assignments ?? []).filter((a) => !a.revoked_at).map((a) => ({ display_name: a.display_name, email: a.email, assignment_role: a.assignment_role })),
         deskAudit: deskAudit ?? null, findings: (findings ?? []) as Finding[], samples: (samples ?? []) as AuditSample[], checks: (checks ?? []) as OnsiteCheck[], epicScores: (epicScores ?? []) as EpicScoreRow[], comments: (comments ?? []) as SectionComment[],
         meetings: pr?.lea_reviews?.consistency_meetings ?? [], finalizations: (pr?.finalizations ?? []).sort((a, b) => a.created_at.localeCompare(b.created_at)), applicableCodes: ((codes ?? []) as unknown as string[]),
+        pip: null,
       };
+      if (pr?.id) {
+        const { data: pip } = await supabase.from("pips").select("id, status, ten_day_close, starts_on, due_on, created_at, closed_at, close_note, pip_goals(id, finding_id, qpi_code, action_steps, status, date_accomplished, sort), pip_progress(month, body, progress_lacking, entered_at), pip_notes(id, goal_id, author_role, body, evidence_file_id, created_at, profiles!pip_notes_author_id_fkey(display_name)), pip_escalations(month, open_goals, notified, notified_at)").eq("program_review_id", pr.id).maybeSingle();
+        if (pip) {
+          site.pip = {
+            id: pip.id, status: pip.status, ten_day_close: pip.ten_day_close, starts_on: pip.starts_on, due_on: pip.due_on, created_at: pip.created_at, closed_at: pip.closed_at, close_note: pip.close_note,
+            goals: ((pip.pip_goals as unknown as PipGoal[]) ?? []).sort((a, b) => a.sort - b.sort),
+            progress: ((pip.pip_progress as unknown as PipInfo["progress"]) ?? []).sort((a, b) => a.month - b.month),
+            notes: ((pip.pip_notes as unknown as { id: string; goal_id: string | null; author_role: string; body: string; evidence_file_id: string | null; created_at: string; profiles: { display_name: string } | null }[]) ?? []).map((n) => ({ ...n, author: n.profiles?.display_name ?? null })).sort((a, b) => a.created_at.localeCompare(b.created_at)),
+            escalations: ((pip.pip_escalations as unknown as { month: number; open_goals: number; notified: string[]; notified_at: string }[]) ?? []).sort((a, b) => a.month - b.month),
+          };
+        }
+      }
     }
   }
 
