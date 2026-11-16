@@ -13,6 +13,10 @@ const MOCK_URL = process.env.E2E_MOCK_SUPABASE_URL ?? "http://127.0.0.1:3101";
 // only works on a build made with the mock address. CI builds that way.
 const builtAgainstMock = process.env.NEXT_PUBLIC_SUPABASE_URL === MOCK_URL && !process.env.E2E_BASE_URL;
 
+// Netlify adds a collaboration script to deploy previews. It carries no nonce,
+// the policy blocks it, and that is the intended outcome; it is not ours.
+const NETLIFY_INJECTED = "/.netlify/scripts/";
+
 declare global {
   interface Window {
     __cspViolations: string[];
@@ -24,6 +28,7 @@ async function recordCspViolations(page: Page) {
   await page.addInitScript(() => {
     window.__cspViolations = [];
     document.addEventListener("securitypolicyviolation", (e) => {
+      if (e.blockedURI.includes("/.netlify/scripts/")) return;
       window.__cspViolations.push(`${e.violatedDirective} ${e.blockedURI} ${e.sourceFile}:${e.lineNumber}`);
     });
   });
@@ -52,7 +57,7 @@ test("the policy carries a fresh nonce per response and never unsafe-inline for 
   const html = await a.text();
   const scripts = html.match(/<script\b[^>]*>/g) ?? [];
   expect(scripts.length).toBeGreaterThan(0);
-  const unnonced = scripts.filter((tag) => !tag.includes(`nonce="${na}"`));
+  const unnonced = scripts.filter((tag) => !tag.includes(`nonce="${na}"`) && !tag.includes(NETLIFY_INJECTED));
   expect(unnonced).toEqual([]);
 });
 
