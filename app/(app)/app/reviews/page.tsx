@@ -15,11 +15,15 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
   if (!user.isStaff) return <Alert tone="warning">This page is for ALSDE staff.</Alert>;
   const supabase = await createUserClient();
   const [{ data: mine }, { data: reviews }] = await Promise.all([
-    supabase.from("review_assignments").select("id, assignment_role, program_reviews(id, program_code, status, visit_date, program_catalog(name), lea_reviews(id, review_month, review_year, visit_start, visit_end, released_at, leas(name)))").is("revoked_at", null).or(`user_id.eq.${user.id},email.eq.${user.email}`),
-    supabase.from("lea_reviews").select("id, review_month, review_year, status, visit_start, visit_end, choice1_start, choice2_start, released_at, leas(name, system_code), review_cycles(name), milestones(kind, computed_on, override_on), program_reviews(status)").order("review_year").order("review_month"),
+    supabase.from("review_assignments").select("id, assignment_role, program_reviews(id, program_code, status, visit_date, finalized_at, program_catalog(name), lea_reviews(id, review_month, review_year, visit_start, visit_end, released_at, leas(name)), program_review_sites(id, school_id))").is("revoked_at", null).or(`user_id.eq.${user.id},email.eq.${user.email}`),
+    supabase.from("lea_reviews").select("id, lea_id, review_month, review_year, status, visit_start, visit_end, choice1_start, choice2_start, released_at, leas(name, system_code), review_cycles(name), milestones(kind, computed_on, override_on), program_reviews(status)").order("review_year").order("review_month"),
   ]);
-  type Row = { id: string; assignment_role: string; program_reviews: { id: string; program_code: string; status: string; visit_date: string | null; program_catalog: { name: string } | null; lea_reviews: { id: string; review_month: number; review_year: number; visit_start: string | null; visit_end: string | null; released_at: string | null; leas: { name: string } | null } | null } | null };
+  type Row = { id: string; assignment_role: string; program_reviews: { id: string; program_code: string; status: string; visit_date: string | null; finalized_at: string | null; program_catalog: { name: string } | null; lea_reviews: { id: string; review_month: number; review_year: number; visit_start: string | null; visit_end: string | null; released_at: string | null; leas: { name: string } | null } | null; program_review_sites: { id: string; school_id: string | null }[] } | null };
   const assigned = ((mine ?? []) as unknown as Row[]).filter((r) => r.program_reviews && r.program_reviews.status !== "removed");
+  const { data: year } = await supabase.from("school_years").select("id").eq("is_current", true).maybeSingle();
+  const { data: declared } = year ? await supabase.from("declared_programs").select("id, lea_id, program_code, home_school_id").eq("school_year_id", year.id).eq("status", "active") : { data: [] };
+  const leaOf = new Map<string, string>();
+  for (const r of reviews ?? []) leaOf.set(r.id, (r as unknown as { lea_id?: string }).lea_id ?? "");
 
   return (
     <>
@@ -27,10 +31,12 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
       <Notices {...notices} />
       <Card title="Assigned to me">
         {assigned.length === 0 ? <Empty>No programs are assigned to you yet.</Empty> : (
-          <Table caption="My assignments" head={<tr><th className={th}>System</th><th className={th}>Program</th><th className={th}>Role</th><th className={th}>Review month</th><th className={th}>Visit</th><th className={th}>Status</th></tr>}>
+          <Table caption="My assignments" head={<tr><th className={th}>System</th><th className={th}>Program</th><th className={th}>Role</th><th className={th}>Review month</th><th className={th}>Visit</th><th className={th}>Status</th><th className={th}>Workspace</th></tr>}>
             {assigned.map((r) => {
               const p = r.program_reviews!;
               const lr = p.lea_reviews;
+              const site = p.program_review_sites[0];
+              const dp = lr ? (declared ?? []).find((d) => d.lea_id === leaOf.get(lr.id) && d.program_code === p.program_code && (d.home_school_id ?? null) === (site?.school_id ?? null)) : undefined;
               return (
                 <tr key={r.id}>
                   <td className={td}>{lr ? <Link href={`/app/admin/reviews/${lr.id}`} className="font-semibold text-brand underline">{lr.leas?.name}</Link> : ""}</td>
@@ -38,7 +44,8 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
                   <td className={td}><Badge>{statusLabel(r.assignment_role)}</Badge></td>
                   <td className={td}>{lr ? `${monthName(lr.review_month)} ${lr.review_year}` : ""}</td>
                   <td className={td}>{p.visit_date ? fmtDate(p.visit_date) : fmtRange(lr?.visit_start, lr?.visit_end)}</td>
-                  <td className={td}><Badge tone={lr?.released_at ? "good" : "warn"}>{lr?.released_at ? statusLabel(p.status) : "Not released"}</Badge></td>
+                  <td className={td}><Badge tone={p.finalized_at ? "good" : lr?.released_at ? "neutral" : "warn"}>{lr?.released_at ? statusLabel(p.status) : "Not released"}</Badge></td>
+                  <td className={td}>{dp && lr?.released_at ? <Link href={`/app/programs/${dp.id}/review`} className="font-semibold text-brand underline">Open review</Link> : ""}</td>
                 </tr>
               );
             })}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { assignReviewer, nominate, releaseNotification, removeSelection, revokeAssignment, runDraw, saveProgramReviewNotes, saveSchedule, setLeaReviewStatus, setTarget } from "@/lib/actions/cycles";
+import { saveConsistencyMeeting } from "@/lib/actions/review";
 import { requireUser } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { eligibilityReason, fmtDate, fmtDateTime, fmtRange, monthName, statusLabel } from "@/lib/format";
@@ -15,7 +16,7 @@ const LEA_STATUSES = ["listed", "selected", "scheduled", "checked_in", "released
 const PROGRAM_STATUSES = ["selected", "released", "evidence_submitted", "desk_audit", "onsite", "post_visit", "finalized", "concluded"];
 
 type Assignment = { id: string; email: string; display_name: string | null; assignment_role: string; revoked_at: string | null; user_id: string | null };
-type ProgramReview = { id: string; program_code: string; status: string; visit_date: string | null; sequence: number | null; pip_expected: boolean; notes: string | null; epic: boolean; selection_id: string | null; review_assignments: Assignment[] };
+type ProgramReview = { id: string; program_code: string; status: string; visit_date: string | null; sequence: number | null; pip_expected: boolean; notes: string | null; epic: boolean; selection_id: string | null; finalized_at: string | null; review_assignments: Assignment[] };
 
 export default async function LeaReviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: SearchParams }) {
   const user = await requireUser();
@@ -31,21 +32,23 @@ export default async function LeaReviewPage({ params, searchParams }: { params: 
   const admin = user.isStateAdmin;
   const released = !!review.released_at;
 
-  const [{ data: declared }, { data: selections }, { data: programReviews }, { data: milestones }, { data: draws }, { data: changes }, { data: contacts }, target] = await Promise.all([
+  const [{ data: declared }, { data: selections }, { data: programReviews }, { data: milestones }, { data: draws }, { data: changes }, { data: contacts }, target, { data: meetings }] = await Promise.all([
     supabase.from("declared_programs").select("id, program_code, delivery_type, dual_scenario, status, excluded_reason, vacant, first_year_teacher, location_lea_id, lea_id, ase_accredited, epic_requested, program_catalog(name, cluster_code, active), home:schools!declared_programs_home_school_id_fkey(name, school_code), declared_program_teachers(teachers(display_name))").eq("lea_id", review.lea_id).eq("school_year_id", cycle.school_year_id).order("program_code"),
     supabase.from("selections").select("id, declared_program_id, method, status, nomination_reason, removal_reason, nominated_by").eq("lea_review_id", id),
-    supabase.from("program_reviews").select("id, program_code, status, visit_date, sequence, pip_expected, notes, epic, selection_id, review_assignments(id, email, display_name, assignment_role, revoked_at, user_id)").eq("lea_review_id", id).order("sequence"),
+    supabase.from("program_reviews").select("id, program_code, status, visit_date, sequence, pip_expected, notes, epic, selection_id, finalized_at, review_assignments(id, email, display_name, assignment_role, revoked_at, user_id)").eq("lea_review_id", id).order("sequence"),
     supabase.from("milestones").select("kind, computed_on, override_on, completed_at").eq("lea_review_id", id),
     supabase.from("selection_draws").select("id, seed, target_count, result, ran_at, pool, excluded").eq("lea_review_id", id).order("ran_at", { ascending: false }),
     supabase.from("scope_changes").select("id, kind, reason, details, occurred_at").eq("lea_review_id", id).order("occurred_at", { ascending: false }),
     supabase.from("lea_contacts").select("display_name, email, contact_role").eq("lea_id", review.lea_id).eq("active", true),
     supabase.rpc("selection_target", { p_lea_review: id }),
+    supabase.from("consistency_meetings").select("id, held_on, attendees, notes").eq("lea_review_id", id).order("held_on", { ascending: false }),
   ]);
   const selByProgram = new Map((selections ?? []).map((s) => [s.declared_program_id, s]));
   const activePrograms = ((programReviews ?? []) as unknown as ProgramReview[]).filter((p) => p.status !== "removed");
   const missingReviewer = activePrograms.filter((p) => !p.review_assignments.some((a) => !a.revoked_at && a.assignment_role !== "cluster_admin"));
   const canNominate = !released && (user.roles.has("reviewer") || user.roles.has("cluster_admin") || admin);
   const canEditDates = admin || (!released && user.roles.has("reviewer"));
+  const assignedHere = activePrograms.some((p) => p.review_assignments.some((a) => !a.revoked_at && (a.user_id === user.id || a.email === user.email)));
 
   return (
     <>
@@ -196,7 +199,7 @@ export default async function LeaReviewPage({ params, searchParams }: { params: 
               const mine = p.review_assignments.some((a) => !a.revoked_at && (a.user_id === user.id || a.email === user.email));
               return (
                 <section key={p.id} className="rounded-md border border-line p-4">
-                  <h3 className="font-semibold">{dp ? <Link href={`/app/programs/${dp.id}`} className="text-brand underline"><span className="font-mono text-xs">{p.program_code}</span> {cat?.name ?? "Program"}</Link> : <><span className="font-mono text-xs">{p.program_code}</span> {cat?.name ?? "Program"}</>} <Badge>{statusLabel(p.status)}</Badge>{p.pip_expected && <> <Badge tone="warn">PIP expected</Badge></>}</h3>
+                  <h3 className="font-semibold">{dp ? <Link href={`/app/programs/${dp.id}`} className="text-brand underline"><span className="font-mono text-xs">{p.program_code}</span> {cat?.name ?? "Program"}</Link> : <><span className="font-mono text-xs">{p.program_code}</span> {cat?.name ?? "Program"}</>} <Badge tone={p.finalized_at ? "good" : "neutral"}>{statusLabel(p.status)}</Badge>{p.pip_expected && <> <Badge tone="warn">PIP expected</Badge></>}{dp && released && <> <Link href={`/app/programs/${dp.id}/review`} className="text-sm font-semibold text-brand underline">Open review</Link></>}</h3>
                   <ul className="mt-2 divide-y divide-line text-sm">
                     {p.review_assignments.filter((a) => !a.revoked_at).map((a) => (
                       <li key={a.id} className="flex items-center justify-between gap-2 py-1">
@@ -246,6 +249,21 @@ export default async function LeaReviewPage({ params, searchParams }: { params: 
         <Card title="System contacts">
           {(contacts ?? []).length === 0 ? <Empty>No contacts on file. The CTE Director is listed under the system&apos;s people once invited.</Empty> : (
             <ul className="divide-y divide-line text-sm">{(contacts ?? []).map((c, i) => <li key={i} className="py-2">{c.display_name} <span className="text-ink-muted">({c.email ?? "no email"})</span> <Badge>{statusLabel(c.contact_role)}</Badge></li>)}</ul>
+          )}
+        </Card>
+        <Card title="Consistency meeting">
+          <p className="mb-2 text-sm text-ink-muted">Reviewers compare scores across this system&apos;s programs before anything is finalized. No program review can be finalized until a meeting is recorded here.</p>
+          {(meetings ?? []).length === 0 ? <Empty>No meeting recorded.</Empty> : (
+            <ul className="divide-y divide-line text-sm">{(meetings ?? []).map((m) => <li key={m.id} className="py-2"><span className="font-semibold">{fmtDate(m.held_on)}</span>: {m.attendees}{m.notes && <span className="block text-ink-muted">{m.notes}</span>}</li>)}</ul>
+          )}
+          {(admin || assignedHere) && (
+            <form action={saveConsistencyMeeting} className="mt-3 grid gap-2 sm:grid-cols-2">
+              <input type="hidden" name="lea_review_id" value={id} /><input type="hidden" name="return_to" value={here} />
+              <Field id="cm_date" label="Held on"><Input id="cm_date" name="held_on" type="date" required /></Field>
+              <Field id="cm_att" label="Attendees"><Input id="cm_att" name="attendees" required /></Field>
+              <div className="sm:col-span-2"><Field id="cm_notes" label="Notes"><Textarea id="cm_notes" name="notes" /></Field></div>
+              <div><Button type="submit" variant="secondary">Record meeting</Button></div>
+            </form>
           )}
         </Card>
         <Card title="Scope changes after release">

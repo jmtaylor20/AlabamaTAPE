@@ -12,6 +12,8 @@ export type CurrentUser = {
   email: string;
   displayName: string;
   aal: "aal1" | "aal2";
+  /** Unix seconds of the latest authenticator verification in this session's token, if any. */
+  mfaVerifiedAt: number | null;
   grants: Grant[];
   roles: Set<Role>;
   leaIds: string[];
@@ -30,10 +32,11 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   const aal = (aalData?.currentLevel ?? "aal1") as "aal1" | "aal2";
+  const mfaVerifiedAt = (aalData?.currentAuthenticationMethods ?? []).filter((m) => m.method === "totp").reduce<number | null>((latest, m) => (latest === null || m.timestamp > latest ? m.timestamp : latest), null);
 
   // Before MFA the database returns nothing by design; the shell only needs identity then.
   if (aal !== "aal2") {
-    return { id: user.id, email: user.email, displayName: user.email, aal, grants: [], roles: new Set(), leaIds: [], isStaff: false, isStateAdmin: false };
+    return { id: user.id, email: user.email, displayName: user.email, aal, mfaVerifiedAt, grants: [], roles: new Set(), leaIds: [], isStaff: false, isStateAdmin: false };
   }
 
   const [{ data: profile }, { data: grants }] = await Promise.all([
@@ -50,6 +53,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     email: user.email,
     displayName: profile.display_name,
     aal,
+    mfaVerifiedAt,
     grants: g,
     roles,
     leaIds: [...new Set(g.map((x) => x.lea_id).filter((x): x is string => !!x))],
@@ -64,6 +68,11 @@ export async function requireUser(): Promise<CurrentUser> {
   if (!user) redirect("/sign-in");
   if (user.aal !== "aal2") redirect("/mfa");
   return user;
+}
+
+/** True when the token carries an authenticator verification from the last ten minutes (the finalization gate). */
+export function hasFreshMfa(user: CurrentUser, windowSeconds = 600) {
+  return user.mfaVerifiedAt !== null && user.mfaVerifiedAt > Math.floor(Date.now() / 1000) - windowSeconds;
 }
 
 export async function requireRole(...roles: Role[]): Promise<CurrentUser> {

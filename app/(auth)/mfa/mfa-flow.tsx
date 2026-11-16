@@ -12,7 +12,7 @@ type Stage = { kind: "loading" } | { kind: "enroll"; factorId: string; qr: strin
  * sign-in verifies a code. The session reaches assurance level 2 only after a
  * successful verification, and the database reads nothing until then.
  */
-export function MfaFlow() {
+export function MfaFlow({ next = "/app", stepUp = false }: { next?: string; stepUp?: boolean }) {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>({ kind: "loading" });
   const [code, setCode] = useState("");
@@ -50,8 +50,8 @@ export function MfaFlow() {
       setBusy(false);
       return setError("That code did not match. Check your authenticator app and try again.");
     }
-    await supabase.rpc("log_event", { p_action: stage.kind === "enroll" ? "auth.mfa_enrolled" : "auth.sign_in", p_entity_type: "profiles" });
-    router.replace("/app");
+    await supabase.rpc("log_event", { p_action: stepUp ? "auth.step_up" : stage.kind === "enroll" ? "auth.mfa_enrolled" : "auth.sign_in", p_entity_type: "profiles" });
+    router.replace(next.startsWith("/app") ? next : "/app");
     router.refresh();
   }
 

@@ -108,7 +108,7 @@ describe("instrument", () => {
     }));
     expect(seen.versions).toEqual(["published"]);
     expect(seen.qpis).toBe(24);
-    expect(seen.ase).toEqual(["2.1.F", "3.1.A", "3.1.B", "3.1.C", "3.1.D", "3.1.E", "4.1.A", "5.1.A", "5.1.B"]);
+    expect(seen.ase).toEqual(["3.1.A", "3.1.B", "3.1.C", "3.1.D", "3.1.E", "4.1.A", "5.1.A", "5.1.B"]);
     expect(seen.dual3).toEqual(["1.1.A", "1.1.B", "1.1.C", "1.1.D", "1.1.E", "1.1.F", "2.1.F", "2.1.G", "3.1.C", "3.1.D"]);
     expect(seen.coop).toEqual(["5.2.A"]);
     expect(seen.subitems).toBe(11);

@@ -36,9 +36,18 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
     <>
       <PageHeader eyebrow={`${lea?.name ?? ""} / ${year?.label ?? ""}`} title={`${dp.program_code} ${catalog?.name ?? "Program"}`}
         description={`${school ? `${school.school_code} ${school.name}` : "System-wide"}. ${teachers.length ? `Teachers: ${teachers.map((t) => t.display_name).join(", ")}.` : "No teachers listed."} ${dp.delivery_type}${dp.dual_scenario ? ` scenario ${dp.dual_scenario}` : ""}${dp.ase_accredited ? ", ASE accredited" : ""}${dp.epic_requested ? ", EPIC requested" : ""}.`}
-        actions={<><LinkButton href="/app/programs">All programs</LinkButton><LinkButton href={`${here}/form-14-1`}>Form 14-1 {form ? <Badge tone={form.status === "submitted" ? "good" : "warn"}>{form.status}</Badge> : null}</LinkButton>{roles.staff && site && <LinkButton href={`/app/admin/reviews/${site.lea_review_id}`}>LEA review</LinkButton>}</>} />
+        actions={<><LinkButton href="/app/programs">All programs</LinkButton><LinkButton href={`${here}/form-14-1`}>Form 14-1 {form ? <Badge tone={form.status === "submitted" ? "good" : "warn"}>{form.status}</Badge> : null}</LinkButton>{roles.staff && site && <LinkButton href={`/app/programs/${id}/review`} variant="primary">Review workspace</LinkButton>}{site?.locked && <LinkButton href={`/app/programs/${id}/report`}>Report</LinkButton>}</>} />
       <Notices {...notices} />
 
+      {site?.deskAudit?.sent_at && (
+        <div className="mb-4"><Alert tone="warning" title={`Desk audit from the reviewer, sent ${fmtDateTime(site.deskAudit.sent_at)}`}><p className="whitespace-pre-line">{site.deskAudit.initial_findings}</p></Alert></div>
+      )}
+      {site?.locked && (
+        <div className="mb-4"><Alert tone="info" title={`Review finalized ${fmtDateTime(site.finalized_at)}`}>
+          {site.findings.length === 0 ? "No findings. " : `${site.findings.filter((f) => f.status === "open").length} open finding${site.findings.filter((f) => f.status === "open").length === 1 ? "" : "s"} of ${site.findings.length}. `}
+          Reviewer scores are shown in the indicator table below. The full report is available from the Report button.
+        </Alert></div>
+      )}
       {site ? (
         <div className="mb-4">
           <Alert tone={site.director_submitted_at ? "success" : site.open ? "warning" : "info"} title={site.released_at ? `Selected for review. Visit ${fmtRange(site.visit_start, site.visit_end)}.` : "Selected for review"}>
@@ -147,7 +156,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
           {qpis.length} indicators apply to this program. {dp.ase_accredited && "Items marked ASE are satisfied by the accreditation evidence in 2.1.F. "}
           {site ? (roles.isDirector ? "Mark 1 or 2 for 2.1.A to 2.1.D from your own observation; the rest are optional. Every entry is kept with its version." : "Director self-scores are shown as entered.") : "Self-scores open once the program is selected and the notification is released."}
         </p>
-        <Table caption="Quality indicators" head={<tr><th className={th}>QPI</th><th className={th}>Evidence</th><th className={th}>Director score</th>{canScore && <th className={th}>Score</th>}</tr>}>
+        <Table caption="Quality indicators" head={<tr><th className={th}>QPI</th><th className={th}>Evidence</th><th className={th}>Director score</th>{site?.locked && <th className={th}>Reviewer score</th>}{canScore && <th className={th}>Score</th>}</tr>}>
           {qpis.map((q) => {
             const s = scoreFor(q.code);
             const count = linked.get(q.code) ?? 0;
@@ -156,6 +165,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
                 <td className={td}><span className="font-mono text-xs">{q.code}</span> {q.title}{q.requiredSelfScore && <> <Badge tone="warn">Required</Badge></>}{q.assurance_based && <> <Badge>Assurance</Badge></>}{q.onsite && <> <Badge>Onsite</Badge></>}{q.per_teacher && <> <Badge>Per teacher</Badge></>}{q.satisfiedByAse && <> <Badge tone="good">ASE</Badge></>}</td>
                 <td className={`${td} tabular-nums`}>{q.satisfiedByAse ? "See 2.1.F" : count > 0 ? <Badge tone="good">{count} file{count === 1 ? "" : "s"}</Badge> : <span className="text-ink-muted">None</span>}</td>
                 <td className={td}>{!site || roles.isTeacher ? <span className="text-ink-muted">{roles.isTeacher ? "Director only" : ""}</span> : s ? <><Badge tone={s.value === "2" ? "good" : s.value === "1" ? "bad" : "neutral"}>{s.value === "NA" ? "N/A" : `Level ${s.value}`}</Badge><span className="block text-xs text-ink-muted">v{s.version}, {fmtDateTime(s.created_at)}{s.na_reason ? `, ${s.na_reason}` : ""}{s.comment ? `, ${s.comment}` : ""}</span></> : <span className="text-ink-muted">Not scored</span>}</td>
+                {site?.locked && (() => { const r = site.scores.find((x) => x.qpi_code === q.code && x.scorer_role === "reviewer"); const f = site.findings.find((x) => x.qpi_code === q.code); return <td className={td}>{r ? <><Badge tone={r.value === "2" ? "good" : r.value === "1" ? "bad" : "neutral"}>{r.value === "NA" ? "N/A" : `Level ${r.value}`}</Badge>{f && <span className="block text-xs">{f.status === "open" ? "Finding: " : "Cleared: "}{f.body}</span>}</> : ""}</td>; })()}
                 {canScore && site && (
                   <td className={td}>
                     <form action={saveSelfScore} className="flex flex-col gap-1">
