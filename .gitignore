@@ -22,3 +22,8 @@ npm-debug.log*
 /coverage/
 /playwright-report/
 /test-results/
+
+# playwright
+/playwright-report/
+/test-results/
+/blob-report/

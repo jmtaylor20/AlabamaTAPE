@@ -6,7 +6,7 @@ The build plan, data model, and permission matrix are in [docs/PLAN.md](docs/PLA
 
 ## Status
 
-Phase 0 (reset and foundation tooling) is complete. Phase 1 (authentication, roles, records, audit log, permission tests) is next.
+Phases 0 and 1 are complete: tooling, invitation-only sign-in with multi-factor authentication, roles and seats, LEAs, schools, programs, teachers, the audit log, and the permission tests. See [docs/PHASE-1.md](docs/PHASE-1.md). Phase 2 (versioned instrument, declarations, selection, scheduling, embargo and release) is next.
 
 ## Stack
 
@@ -33,6 +33,7 @@ npm run typecheck      # TypeScript
 npm run check:dashes   # fails on any em dash or en dash in user-facing text
 npm run test:unit      # Vitest unit tests
 npm run test:policies  # starts a throwaway Postgres, applies the auth shim and all migrations, runs the policy tests
+npm run test:e2e       # Playwright checks of the public surface against a production build
 npm run build
 ```
 
