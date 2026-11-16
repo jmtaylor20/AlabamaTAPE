@@ -55,3 +55,48 @@ export async function expectDenied(promise: Promise<unknown>) {
   }
   throw new Error("expected the query to be denied, but it succeeded");
 }
+
+/** Run as a signed-in user WITHOUT a wrapping transaction, so the effects persist. Role and claims are reset afterward. */
+export async function asUser<T>(p: pg.Pool, claims: Claims, fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+  const client = await p.connect();
+  const role = claims.role ?? "authenticated";
+  const jwt = { role, ...claims, aal: claims.aal ?? "aal2" };
+  try {
+    await client.query(`set role ${role}`);
+    await client.query("select set_config('request.jwt.claims', $1, false)", [JSON.stringify(jwt)]);
+    return await fn(client);
+  } finally {
+    await client.query("reset role").catch(() => {});
+    await client.query("select set_config('request.jwt.claims', '', false)").catch(() => {});
+    client.release();
+  }
+}
+
+/** Inside a transaction: expect a statement to be denied by policy, without aborting the transaction. */
+export async function denied(c: pg.PoolClient, sql: string, params: unknown[] = []) {
+  await c.query("savepoint expect_denied");
+  try {
+    await c.query(sql, params);
+  } catch (err) {
+    await c.query("rollback to savepoint expect_denied");
+    const code = (err as { code?: string }).code;
+    if (code === "42501" || code === "42P01") return;
+    throw err;
+  }
+  await c.query("release savepoint expect_denied");
+  throw new Error("expected the query to be denied, but it succeeded");
+}
+
+/** Inside a transaction: expect a statement to raise an error matching the pattern, without aborting the transaction. */
+export async function fails(c: pg.PoolClient, sql: string, params: unknown[] = [], pattern?: RegExp) {
+  await c.query("savepoint expect_fail");
+  try {
+    await c.query(sql, params);
+  } catch (err) {
+    await c.query("rollback to savepoint expect_fail");
+    if (pattern && !pattern.test(String((err as Error).message))) throw err;
+    return;
+  }
+  await c.query("release savepoint expect_fail");
+  throw new Error("expected the query to fail, but it succeeded");
+}

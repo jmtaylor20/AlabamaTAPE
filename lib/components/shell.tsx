@@ -19,10 +19,10 @@ export function roleLabel(role: string) {
 export function Shell({ user, children }: { user: CurrentUser; children: React.ReactNode }) {
   const nav: { href: string; label: string }[] = [{ href: "/app", label: "Home" }];
   if (user.leaIds.length) {
-    nav.push({ href: "/app/lea", label: "My LEA" }, { href: "/app/lea/review", label: "My review" });
+    nav.push({ href: "/app/lea", label: "My LEA" }, { href: "/app/programs", label: "Programs" }, { href: "/app/lea/review", label: "My review" });
     if (user.roles.has("cte_director") || user.roles.has("lea_staff")) nav.push({ href: "/app/lea/declarations", label: "Declarations" });
   }
-  if (user.isStaff) nav.push({ href: "/app/reviews", label: "Reviews" });
+  if (user.isStaff) nav.push({ href: "/app/reviews", label: "Reviews" }, { href: "/app/programs", label: "Programs" });
   if (user.isStateAdmin) {
     nav.push({ href: "/app/admin/cycles", label: "Cycles" }, { href: "/app/admin/declarations", label: "Declarations" }, { href: "/app/admin/leas", label: "LEAs" }, { href: "/app/admin/catalog", label: "Programs" }, { href: "/app/admin/users", label: "Users" }, { href: "/app/admin/audit", label: "Audit log" }, { href: "/app/admin/settings", label: "Settings" });
   }

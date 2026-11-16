@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { assignReviewer, nominate, releaseNotification, removeSelection, revokeAssignment, runDraw, saveProgramReviewNotes, saveSchedule, setLeaReviewStatus, setTarget } from "@/lib/actions/cycles";
 import { requireUser } from "@/lib/auth/session";
@@ -195,7 +196,7 @@ export default async function LeaReviewPage({ params, searchParams }: { params: 
               const mine = p.review_assignments.some((a) => !a.revoked_at && (a.user_id === user.id || a.email === user.email));
               return (
                 <section key={p.id} className="rounded-md border border-line p-4">
-                  <h3 className="font-semibold"><span className="font-mono text-xs">{p.program_code}</span> {cat?.name ?? "Program"} <Badge>{statusLabel(p.status)}</Badge>{p.pip_expected && <> <Badge tone="warn">PIP expected</Badge></>}</h3>
+                  <h3 className="font-semibold">{dp ? <Link href={`/app/programs/${dp.id}`} className="text-brand underline"><span className="font-mono text-xs">{p.program_code}</span> {cat?.name ?? "Program"}</Link> : <><span className="font-mono text-xs">{p.program_code}</span> {cat?.name ?? "Program"}</>} <Badge>{statusLabel(p.status)}</Badge>{p.pip_expected && <> <Badge tone="warn">PIP expected</Badge></>}</h3>
                   <ul className="mt-2 divide-y divide-line text-sm">
                     {p.review_assignments.filter((a) => !a.revoked_at).map((a) => (
                       <li key={a.id} className="flex items-center justify-between gap-2 py-1">
