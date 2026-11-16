@@ -1,31 +1,8 @@
 import type { NextConfig } from "next";
 
 // Security headers applied to every response. The content security policy is
-// deliberately strict: no inline scripts, no third-party hosts except Supabase.
-const supabaseHost = (() => {
-  try {
-    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").host;
-  } catch {
-    return "";
-  }
-})();
-
-const csp = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-  "object-src 'none'",
-  "img-src 'self' data: blob:",
-  "font-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
-  `connect-src 'self'${supabaseHost ? ` https://${supabaseHost} wss://${supabaseHost}` : ""}`,
-  "script-src 'self'",
-  "upgrade-insecure-requests",
-].join("; ");
-
+// not here: it needs a nonce that changes per request, so proxy.ts issues it.
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },

@@ -44,7 +44,8 @@ Scope: the web application, its database, file storage, email, and the operators
 | Audit log tampering | Append-only trigger rejects update and delete; no delete grant | `foundation.test.ts` |
 | Staff message leaking to the district | Trigger refuses any district address on a staff-audience draft | `communications.test.ts` |
 | Cross-site request forgery | Server actions require same-origin POST (Next.js); SameSite cookies | framework |
-| Script injection | React output encoding; strict CSP with no inline scripts; no HTML email bodies | headers spec |
+| Script injection | React output encoding; strict CSP issued per request by the proxy with a one-time nonce and strict-dynamic, no unsafe-inline or unsafe-eval for scripts; no HTML email bodies | `hydration.spec.ts`, `public.spec.ts` |
+| Sign-in token spent by a mail link scanner | Emails carry a code only; a link, if ever used, lands on `/auth/link` where a button sends the token in a POST | `hydration.spec.ts` |
 | Clickjacking | `frame-ancestors 'none'` and `X-Frame-Options: DENY` | headers spec |
 | Dependency vulnerabilities | `npm audit` at high fails CI; overrides for known advisories | CI |
 | Service-role key exposure | Held only in Netlify server environment; never imported by client code; `server-only` guard | code review |

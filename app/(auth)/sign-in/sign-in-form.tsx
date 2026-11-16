@@ -15,7 +15,7 @@ export function SignInForm({ providerError, linkError, expired }: { providerErro
       {providerError && <Alert tone="danger">Sign-in with that provider is not available right now. Use your email instead.</Alert>}
       {linkError !== null && (
         <Alert tone="danger" title="That sign-in link did not work">
-          Links expire after a few minutes and work once, in the same browser that requested them. Request a new code below.
+          Links work once and expire a few minutes after they are sent. Request a new code below.
           {linkError && <span className="block text-xs text-ink-muted">Details: {linkError}</span>}
         </Alert>
       )}
@@ -44,7 +44,7 @@ export function SignInForm({ providerError, linkError, expired }: { providerErro
         </form>
       ) : (
         <form action={codeAction} className="flex flex-col gap-4" aria-busy={codePending}>
-          {state.notice && <Alert tone="info">{state.notice} If the email contains a sign-in link instead of a code, open the link in this browser.</Alert>}
+          {state.notice && <Alert tone="info">{state.notice}</Alert>}
           <input type="hidden" name="email" value={state.email ?? emailState.email ?? ""} />
           <Field id="code" label={`Code sent to ${state.email ?? emailState.email}`} error={state.error}>
             <Input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" required />

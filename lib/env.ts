@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+// In the browser Zod would otherwise probe for eval support with Function(""),
+// which the content security policy blocks and reports. Skip the probe there.
+if (typeof window !== "undefined") z.config({ jitless: true });
+
 // Environment variables are validated once, at startup, so a misconfigured
 // deployment fails loudly instead of silently running without security settings.
 

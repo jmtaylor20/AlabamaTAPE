@@ -21,6 +21,7 @@
     "check": "npm run lint && npm run typecheck && npm run check:dashes && npm test",
     "db:invite": "node scripts/db/invite.mjs",
     "test:e2e": "playwright test",
+    "build:e2e": "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:3101 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_placeholder_for_ci_only next build",
     "check:backup": "node scripts/db/with-test-db.mjs node scripts/db/backup-restore-check.mjs"
   },
   "dependencies": {

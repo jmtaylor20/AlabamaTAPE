@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { createUserClient } from "@/lib/supabase/server";
 
 /**
@@ -13,6 +14,7 @@ import { createUserClient } from "@/lib/supabase/server";
  */
 
 const emailSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254) });
+const linkSchema = z.object({ token_hash: z.string().trim().min(10).max(512), type: z.enum(["email", "magiclink", "signup", "invite", "recovery", "email_change"]) });
 const codeSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254), code: z.string().trim().regex(/^\d{6,8}$/) });
 
 export type AuthState = { step: "email" | "code"; email?: string; error?: string; notice?: string };
@@ -64,6 +66,16 @@ export async function verifyEmailCode(_prev: AuthState, formData: FormData): Pro
   const supabase = await createUserClient();
   const { error } = await supabase.auth.verifyOtp({ email: parsed.data.email, token: parsed.data.code, type: "email" });
   if (error) return { step: "code", email: parsed.data.email, error: friendlyAuthError(error.message) };
+  redirect("/mfa");
+}
+
+/** Uses an emailed link's token. Reached only by the button on /auth/link, never by opening the link. */
+export async function completeLinkSignIn(formData: FormData) {
+  const parsed = linkSchema.safeParse({ token_hash: formData.get("token_hash"), type: formData.get("type") });
+  if (!parsed.success) redirect("/sign-in?error=link");
+  const supabase = await createUserClient();
+  const { error } = await supabase.auth.verifyOtp({ token_hash: parsed.data.token_hash, type: parsed.data.type as EmailOtpType });
+  if (error) redirect(`/sign-in?error=link&detail=${encodeURIComponent(error.message.slice(0, 120))}`);
   redirect("/mfa");
 }
 

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+// Every response carries a one-time script nonce, so no page may be prerendered.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: { default: "TAPE Online", template: "%s | TAPE Online" },
   description: "Alabama CTE program review.",

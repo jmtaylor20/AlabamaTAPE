@@ -26,7 +26,8 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/tape_test
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      # The e2e suite drives a production build against tests/e2e/mock-supabase.mjs.
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:3101
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_placeholder_for_ci_only
     steps:
       - uses: actions/checkout@v4
