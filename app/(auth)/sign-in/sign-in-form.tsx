@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { requestEmailCode, signInWithProvider, verifyEmailCode, type AuthState } from "@/lib/actions/auth";
 import { Alert, Button, Field, Input } from "@/lib/ui";
 
-export function SignInForm({ providerError, expired }: { providerError: boolean; expired: boolean }) {
+export function SignInForm({ providerError, linkError, expired }: { providerError: boolean; linkError: string | null; expired: boolean }) {
   const [emailState, emailAction, emailPending] = useActionState(requestEmailCode, { step: "email" } as AuthState);
   const [codeState, codeAction, codePending] = useActionState(verifyEmailCode, { step: "code" } as AuthState);
   const state: AuthState = codeState.error ? codeState : emailState;
@@ -13,6 +13,12 @@ export function SignInForm({ providerError, expired }: { providerError: boolean;
     <div className="flex flex-col gap-6">
       {expired && <Alert tone="warning">Your session ended. Sign in again to continue.</Alert>}
       {providerError && <Alert tone="danger">Sign-in with that provider is not available right now. Use your email instead.</Alert>}
+      {linkError !== null && (
+        <Alert tone="danger" title="That sign-in link did not work">
+          Links expire after a few minutes and work once, in the same browser that requested them. Request a new code below.
+          {linkError && <span className="block text-xs text-ink-muted">Details: {linkError}</span>}
+        </Alert>
+      )}
 
       <form action={signInWithProvider} className="flex flex-col gap-2">
         <Button name="provider" value="azure" type="submit" variant="secondary" className="w-full">
@@ -38,7 +44,7 @@ export function SignInForm({ providerError, expired }: { providerError: boolean;
         </form>
       ) : (
         <form action={codeAction} className="flex flex-col gap-4" aria-busy={codePending}>
-          {state.notice && <Alert tone="info">{state.notice}</Alert>}
+          {state.notice && <Alert tone="info">{state.notice} If the email contains a sign-in link instead of a code, open the link in this browser.</Alert>}
           <input type="hidden" name="email" value={state.email ?? emailState.email ?? ""} />
           <Field id="code" label={`Code sent to ${state.email ?? emailState.email}`} error={state.error}>
             <Input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" required />
