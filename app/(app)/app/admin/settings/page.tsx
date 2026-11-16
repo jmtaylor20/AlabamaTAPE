@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { endPairing, saveDomain, saveHoliday, savePairing, saveSchoolYear, setDomainActive } from "@/lib/actions/admin";
+import { endPairing, saveDomain, saveHoliday, savePairing, saveRetention, saveSchoolYear, setDomainActive } from "@/lib/actions/admin";
 import { requireRole } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { createUserClient } from "@/lib/supabase/server";
@@ -12,6 +12,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
   await requireRole("state_admin");
   const notices = await readNotices(searchParams);
   const supabase = await createUserClient();
+  const { data: retention } = await supabase.rpc("retention_report");
   const [{ data: years }, { data: holidays }, { data: domains }, { data: pairings }, { data: staff }] = await Promise.all([
     supabase.from("school_years").select("*").order("label", { ascending: false }),
     supabase.from("holidays").select("*").order("holiday_on"),
@@ -68,6 +69,17 @@ export default async function SettingsPage({ searchParams }: { searchParams: Sea
           </form>
         </Card>
 
+        <Card title="Retention" className="lg:col-span-2">
+          <p className="mb-3 text-sm text-ink-muted">Years each record class is kept, as placeholders until the ALSDE records schedule is confirmed. The report shows what would be eligible. Nothing is destroyed by the app; destruction will be a separate, logged State Admin action.</p>
+          <form action={saveRetention} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {((retention ?? []) as { record_class: string; years: number; total: number; eligible: number; oldest: string | null }[]).map((r) => (
+              <Field key={r.record_class} id={`ret-${r.record_class}`} label={r.record_class.replaceAll("_", " ")} hint={`${r.total} on file, ${r.eligible} past the limit${r.oldest ? `, oldest ${r.oldest}` : ""}`}>
+                <Input id={`ret-${r.record_class}`} name={`years:${r.record_class}`} type="number" min={1} max={50} defaultValue={r.years} />
+              </Field>
+            ))}
+            <div className="sm:col-span-2 lg:col-span-4"><Button type="submit" variant="secondary">Save retention years</Button></div>
+          </form>
+        </Card>
         <Card title="Staff pairings">
           <p className="mb-3 text-sm text-ink-muted">Wherever person A is included on a review or an email, person B is included too, for the dates below.</p>
           <ul className="divide-y divide-line text-sm">

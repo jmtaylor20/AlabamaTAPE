@@ -276,3 +276,17 @@ export async function endPairing(formData: FormData) {
   const { error } = await supabase.from("staff_pairings").update({ ends_on: new Date().toISOString().slice(0, 10) }).eq("id", parsed.data.id);
   back("/app/admin/settings", error ? undefined : "Pairing ended.", error ? explain(error.message) : undefined);
 }
+
+export async function saveRetention(formData: FormData) {
+  const user = await requireRole("state_admin");
+  const supabase = await createUserClient();
+  for (const [key, raw] of formData.entries()) {
+    const m = /^years:([a-z_]+)$/.exec(key);
+    if (!m) continue;
+    const years = Number(raw);
+    if (!Number.isInteger(years) || years < 1 || years > 50) back("/app/admin/settings", undefined, "Retention years must be a whole number from 1 to 50.");
+    const { error } = await supabase.from("retention_policies").update({ years, updated_by: user.id, updated_at: new Date().toISOString() }).eq("record_class", m[1]!);
+    if (error) back("/app/admin/settings", undefined, explain(error.message));
+  }
+  back("/app/admin/settings", "Retention years saved.");
+}

@@ -25,7 +25,7 @@ export function Shell({ user, children }: { user: CurrentUser; children: React.R
   if (user.isStaff) nav.push({ href: "/app/reviews", label: "Reviews" }, { href: "/app/programs", label: "Programs" }, { href: "/app/pips", label: "PIPs" }, { href: "/app/drafts", label: "Drafts" });
   nav.push({ href: "/app/calendar", label: "Calendar" });
   if (user.isStateAdmin) {
-    nav.push({ href: "/app/admin/cycles", label: "Cycles" }, { href: "/app/admin/declarations", label: "Declarations" }, { href: "/app/admin/communications", label: "Templates" }, { href: "/app/admin/leas", label: "LEAs" }, { href: "/app/admin/catalog", label: "Programs" }, { href: "/app/admin/users", label: "Users" }, { href: "/app/admin/audit", label: "Audit log" }, { href: "/app/admin/settings", label: "Settings" });
+    nav.push({ href: "/app/admin/cycles", label: "Cycles" }, { href: "/app/admin/declarations", label: "Declarations" }, { href: "/app/admin/communications", label: "Templates" }, { href: "/app/admin/imports", label: "Imports" }, { href: "/app/admin/leas", label: "LEAs" }, { href: "/app/admin/catalog", label: "Programs" }, { href: "/app/admin/users", label: "Users" }, { href: "/app/admin/audit", label: "Audit log" }, { href: "/app/admin/settings", label: "Settings" });
   }
   if (user.isStaff) nav.push({ href: "/app/admin/instrument", label: "Instrument" });
   nav.push({ href: "/app/account", label: "Account" });

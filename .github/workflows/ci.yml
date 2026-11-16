@@ -40,6 +40,8 @@ jobs:
       - run: npm run check:dashes
       - run: npm run test:unit
       - run: npm run test:policies
+      - name: Backup and restore round trip
+        run: npm run check:backup
       - run: npm run build
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium

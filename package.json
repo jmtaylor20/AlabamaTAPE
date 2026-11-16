@@ -20,7 +20,8 @@
     "check:dashes": "node scripts/check-dashes.mjs",
     "check": "npm run lint && npm run typecheck && npm run check:dashes && npm test",
     "db:invite": "node scripts/db/invite.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:backup": "node scripts/db/with-test-db.mjs node scripts/db/backup-restore-check.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",
@@ -33,6 +34,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "1.65.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
@@ -49,6 +51,7 @@
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.8"
-    }
+    },
+    "uuid": "^11.1.0"
   }
 }

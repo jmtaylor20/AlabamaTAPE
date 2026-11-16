@@ -230,3 +230,151 @@ export async function discardImport(formData: FormData) {
   await supabase.from("import_jobs").update({ status: "discarded" }).eq("id", parsed.data.job_id).eq("status", "previewed");
   go(parsed.data.return_to, "Preview discarded. Nothing was imported.");
 }
+
+// ---------------------------------------------------------------------------
+// Master spreadsheet and scheduling form
+// ---------------------------------------------------------------------------
+import { parseMaster, parseScheduleForm, type MasterPlan, type ScheduleFormRow } from "@/lib/import/master";
+
+export async function previewMasterImport(formData: FormData) {
+  const user = await requireRole("state_admin");
+  const parsed = z.object({ cycle_id: uuid.or(z.literal("")) }).safeParse({ cycle_id: formData.get("cycle_id") ?? "" });
+  if (!parsed.success) go("/app/admin/imports");
+  const f = await fileFrom(formData);
+  if ("error" in f) go("/app/admin/imports", undefined, f.error);
+  const supabase = await createUserClient();
+  const { data: cycle } = parsed.data.cycle_id ? await supabase.from("review_cycles").select("id, school_year_id, school_years(label)").eq("id", parsed.data.cycle_id).maybeSingle() : { data: null };
+  const startYear = Number(((cycle?.school_years as unknown as { label: string } | null)?.label ?? "2026").slice(0, 4));
+  let plan: MasterPlan;
+  try {
+    plan = parseMaster(await readWorkbook(f.buffer), startYear);
+  } catch {
+    go("/app/admin/imports", undefined, "That workbook could not be read.");
+  }
+  const summary = { catalog: plan.catalog?.rows.length ?? 0, leas: plan.leas?.rows.length ?? 0, schools: plan.schools?.rows.length ?? 0, schedule: plan.schedule?.rows.length ?? 0, ignored: plan.ignored };
+  const { data: job, error } = await supabase.from("import_jobs").insert({ kind: "master", file_name: f.file.name, school_year_id: cycle?.school_year_id ?? null, plan: { ...plan, cycle_id: cycle?.id ?? null }, summary, created_by: user.id }).select("id").single();
+  if (error || !job) go("/app/admin/imports", undefined, "Could not save the preview.");
+  redirect(`/app/admin/imports/${job.id}`);
+}
+
+export async function applyMasterImport(formData: FormData) {
+  await requireRole("state_admin");
+  const parsed = z.object({ job_id: uuid }).safeParse({ job_id: formData.get("job_id") });
+  if (!parsed.success) go("/app/admin/imports");
+  const supabase = await createUserClient();
+  const { data: job } = await supabase.from("import_jobs").select("*").eq("id", parsed.data.job_id).eq("kind", "master").maybeSingle();
+  if (!job || job.status !== "previewed") go("/app/admin/imports", undefined, "That preview is no longer available.");
+  const plan = job.plan as MasterPlan & { cycle_id: string | null };
+  const path = `/app/admin/imports/${job.id}`;
+  const result = { clusters: 0, programs: 0, leas: 0, contacts: 0, schools: 0, scheduled: 0, skipped: [] as string[] };
+  const { data: clusters } = await supabase.from("clusters").select("code, name");
+  const clusterByName = new Map((clusters ?? []).map((c) => [c.name.trim().toLowerCase(), c.code]));
+  const clusterCodes = new Set((clusters ?? []).map((c) => c.code));
+
+  for (const r of plan.catalog?.rows ?? []) {
+    if (r.problems.length) { result.skipped.push(`Programs row ${r.row}: ${r.problems.join("; ")}`); continue; }
+    let code = r.clusterCode || clusterByName.get(r.clusterName.toLowerCase()) || "";
+    if (!code && r.clusterName) {
+      code = String(Math.max(0, ...[...clusterCodes].map(Number)) + 1).padStart(2, "0");
+      const { error } = await supabase.from("clusters").insert({ code, name: r.clusterName, sort: Number(code) });
+      if (error) { result.skipped.push(`Programs row ${r.row}: cluster ${r.clusterName} could not be created`); continue; }
+      clusterCodes.add(code); clusterByName.set(r.clusterName.toLowerCase(), code); result.clusters += 1;
+    }
+    if (!clusterCodes.has(code)) { result.skipped.push(`Programs row ${r.row}: unknown cluster ${r.clusterCode || r.clusterName}`); continue; }
+    const { error } = await supabase.from("program_catalog").upsert({ code: r.code, name: r.name, cluster_code: code, is_coop: r.isCoop, active: true }, { onConflict: "code" });
+    if (error) result.skipped.push(`Programs row ${r.row}: ${error.message}`); else result.programs += 1;
+  }
+  const { data: leasNow } = await supabase.from("leas").select("id, system_code, name, code_is_placeholder");
+  const leaByCode = new Map((leasNow ?? []).map((l) => [l.system_code, l]));
+  const leaByName = new Map((leasNow ?? []).map((l) => [l.name.trim().toLowerCase(), l]));
+  for (const r of plan.leas?.rows ?? []) {
+    if (r.problems.length) { result.skipped.push(`Systems row ${r.row}: ${r.problems.join("; ")}`); continue; }
+    const existing = leaByCode.get(r.systemCode) ?? leaByName.get(r.name.toLowerCase());
+    let leaId: string;
+    if (existing) {
+      // A placeholder from the Cognia import gets its real code here.
+      const { error } = await supabase.from("leas").update({ system_code: r.systemCode, name: r.name, lea_type: r.leaType, code_is_placeholder: false }).eq("id", existing.id);
+      if (error) { result.skipped.push(`Systems row ${r.row}: ${error.message}`); continue; }
+      leaId = existing.id;
+    } else {
+      const { data, error } = await supabase.from("leas").insert({ system_code: r.systemCode, name: r.name, lea_type: r.leaType, source: "import:master" }).select("id").single();
+      if (error || !data) { result.skipped.push(`Systems row ${r.row}: ${error?.message ?? "could not create"}`); continue; }
+      leaId = data.id;
+      leaByCode.set(r.systemCode, { id: leaId, system_code: r.systemCode, name: r.name, code_is_placeholder: false });
+    }
+    result.leas += 1;
+    if (r.directorEmail) {
+      const { data: c } = await supabase.from("lea_contacts").select("id").eq("lea_id", leaId).eq("email", r.directorEmail).maybeSingle();
+      if (!c) { await supabase.from("lea_contacts").insert({ lea_id: leaId, contact_role: "cte_director", display_name: r.directorName || r.directorEmail, email: r.directorEmail, source: "import:master" }); result.contacts += 1; }
+    }
+  }
+  const { data: leasAfter } = await supabase.from("leas").select("id, system_code, name");
+  const codeToId = new Map((leasAfter ?? []).map((l) => [l.system_code, l.id]));
+  const nameToId = new Map((leasAfter ?? []).map((l) => [l.name.trim().toLowerCase(), l.id]));
+  for (const r of plan.schools?.rows ?? []) {
+    if (r.problems.length) { result.skipped.push(`Schools row ${r.row}: ${r.problems.join("; ")}`); continue; }
+    const leaId = codeToId.get(r.systemCode);
+    if (!leaId) { result.skipped.push(`Schools row ${r.row}: system ${r.systemCode} not on file`); continue; }
+    const type = /career|tech|center/.test(r.schoolType) ? "career_tech_center" : /middle/.test(r.schoolType) ? "middle_school" : /college/.test(r.schoolType) ? "college" : /high/.test(r.schoolType) || !r.schoolType ? "high_school" : "other";
+    const { data: existing } = await supabase.from("schools").select("id").eq("lea_id", leaId).eq("school_code", r.schoolCode).maybeSingle();
+    const { error } = existing ? await supabase.from("schools").update({ name: r.name, school_type: type }).eq("id", existing.id) : await supabase.from("schools").insert({ lea_id: leaId, school_code: r.schoolCode, name: r.name, school_type: type });
+    if (error) result.skipped.push(`Schools row ${r.row}: ${error.message}`); else result.schools += 1;
+  }
+  if (plan.schedule && plan.cycle_id) {
+    for (const r of plan.schedule.rows) {
+      if (r.problems.length || !r.reviewMonth || !r.reviewYear) { result.skipped.push(`Schedule row ${r.row}: ${r.problems.join("; ") || "incomplete"}`); continue; }
+      const leaId = (r.systemCode && codeToId.get(r.systemCode)) || nameToId.get(r.systemName.toLowerCase());
+      if (!leaId) { result.skipped.push(`Schedule row ${r.row}: system ${r.systemName || r.systemCode} not on file`); continue; }
+      await supabase.from("compliance_list").upsert({ cycle_id: plan.cycle_id, lea_id: leaId, review_month: r.reviewMonth, review_year: r.reviewYear, source: "import:master" }, { onConflict: "cycle_id,lea_id" });
+      const { error } = await supabase.from("lea_reviews").upsert({ cycle_id: plan.cycle_id, lea_id: leaId, review_month: r.reviewMonth, review_year: r.reviewYear }, { onConflict: "cycle_id,lea_id", ignoreDuplicates: true });
+      if (error) result.skipped.push(`Schedule row ${r.row}: ${error.message}`); else result.scheduled += 1;
+    }
+  } else if (plan.schedule) {
+    result.skipped.push("Schedule sheet present but no cycle was chosen; the compliance list was not loaded.");
+  }
+  await supabase.from("import_jobs").update({ status: "applied", applied_at: new Date().toISOString(), result }).eq("id", job.id);
+  await supabase.rpc("log_event", { p_action: "import.master", p_entity_type: "import_jobs", p_entity_id: job.id, p_meta: result });
+  go(path, `Imported ${result.programs} programs, ${result.leas} systems, ${result.schools} schools, ${result.scheduled} schedule rows. ${result.skipped.length} rows skipped.`);
+}
+
+export async function previewScheduleImport(formData: FormData) {
+  const user = await requireRole("state_admin");
+  const parsed = z.object({ cycle_id: uuid }).safeParse({ cycle_id: formData.get("cycle_id") });
+  if (!parsed.success) go("/app/admin/imports", undefined, "Choose a cycle for the scheduling responses.");
+  const f = await fileFrom(formData);
+  if ("error" in f) go("/app/admin/imports", undefined, f.error);
+  let plan: ReturnType<typeof parseScheduleForm>;
+  try {
+    plan = parseScheduleForm(await readWorkbook(f.buffer));
+  } catch {
+    go("/app/admin/imports", undefined, "That workbook could not be read.");
+  }
+  const supabase = await createUserClient();
+  const { data: job, error } = await supabase.from("import_jobs").insert({ kind: "compliance_list", file_name: f.file.name, plan: { ...plan, cycle_id: parsed.data.cycle_id, flavor: "schedule_form" }, summary: { rows: plan.rows.length, problems: plan.problems.length }, created_by: user.id }).select("id").single();
+  if (error || !job) go("/app/admin/imports", undefined, "Could not save the preview.");
+  redirect(`/app/admin/imports/${job.id}`);
+}
+
+export async function applyScheduleImport(formData: FormData) {
+  await requireRole("state_admin");
+  const parsed = z.object({ job_id: uuid }).safeParse({ job_id: formData.get("job_id") });
+  if (!parsed.success) go("/app/admin/imports");
+  const supabase = await createUserClient();
+  const { data: job } = await supabase.from("import_jobs").select("*").eq("id", parsed.data.job_id).eq("kind", "compliance_list").maybeSingle();
+  if (!job || job.status !== "previewed") go("/app/admin/imports", undefined, "That preview is no longer available.");
+  const plan = job.plan as { rows: ScheduleFormRow[]; cycle_id: string };
+  const path = `/app/admin/imports/${job.id}`;
+  const result = { updated: 0, skipped: [] as string[] };
+  const { data: reviews } = await supabase.from("lea_reviews").select("id, released_at, leas(system_code, name)").eq("cycle_id", plan.cycle_id);
+  for (const r of plan.rows) {
+    if (r.problems.length) { result.skipped.push(`Row ${r.row}: ${r.problems.join("; ")}`); continue; }
+    const review = (reviews ?? []).find((x) => { const l = x.leas as unknown as { system_code: string; name: string } | null; return (r.systemCode && l?.system_code === r.systemCode) || (r.systemName && l?.name.trim().toLowerCase() === r.systemName.toLowerCase()); });
+    if (!review) { result.skipped.push(`Row ${r.row}: ${r.systemName || r.systemCode} is not on this cycle`); continue; }
+    if (review.released_at) { result.skipped.push(`Row ${r.row}: ${r.systemName || r.systemCode} is already released; change dates on the review page with a reason`); continue; }
+    const { error } = await supabase.from("lea_reviews").update({ choice1_start: r.choice1Start, choice1_end: r.choice1End || r.choice1Start, choice2_start: r.choice2Start || null, choice2_end: r.choice2End || r.choice2Start || null, notes: r.notes || null }).eq("id", review.id);
+    if (error) result.skipped.push(`Row ${r.row}: ${error.message}`); else result.updated += 1;
+  }
+  await supabase.from("import_jobs").update({ status: "applied", applied_at: new Date().toISOString(), result }).eq("id", job.id);
+  await supabase.rpc("log_event", { p_action: "import.schedule_form", p_entity_type: "import_jobs", p_entity_id: job.id, p_meta: result });
+  go(path, `Recorded date choices for ${result.updated} systems. ${result.skipped.length} rows skipped.`);
+}

@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { createUserClient } from "@/lib/supabase/server";
 
@@ -33,10 +34,22 @@ function friendlyAuthError(message: string) {
   return "Sign-in failed. Try again, or contact the TAPE coordinator if the problem continues.";
 }
 
+function hashKey(value: string) {
+  return createHash("sha256").update(value.toLowerCase()).digest("hex").slice(0, 32);
+}
+
 export async function requestEmailCode(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = emailSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) return { step: "email", error: "Enter a valid email address." };
   const supabase = await createUserClient();
+  // Five codes per address and thirty per network address in fifteen minutes, counted in the database.
+  const h = await headers();
+  const ip = (h.get("x-nf-client-connection-ip") ?? h.get("x-forwarded-for") ?? "unknown").split(",")[0]!.trim();
+  const [byEmail, byIp] = await Promise.all([
+    supabase.rpc("consume_rate_limit", { p_key: `otp:email:${hashKey(parsed.data.email)}`, p_max: 5, p_window_seconds: 900 }),
+    supabase.rpc("consume_rate_limit", { p_key: `otp:ip:${hashKey(ip)}`, p_max: 30, p_window_seconds: 900 }),
+  ]);
+  if (byEmail.data === false || byIp.data === false) return { step: "email", error: "Too many sign-in codes requested. Wait fifteen minutes and try again." };
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
     options: { shouldCreateUser: true, emailRedirectTo: `${await siteUrl()}/auth/callback` },

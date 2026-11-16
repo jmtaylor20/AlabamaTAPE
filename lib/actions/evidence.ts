@@ -45,6 +45,8 @@ export async function beginUpload(input: { declaredProgramId: string; name: stri
   if (!parsed.success) return { ok: false, error: "Check the file and the details." };
   const d = parsed.data;
   const supabase = await createUserClient();
+  const { data: allowed } = await supabase.rpc("consume_rate_limit", { p_key: `upload:${user.id}`, p_max: 60, p_window_seconds: 600 });
+  if (allowed === false) return { ok: false, error: "Too many uploads in a short time. Wait a few minutes and try again." };
   const { data: dp } = await supabase.from("declared_programs").select("id, lea_id, school_year_id, program_code, home_school_id, leas(system_code)").eq("id", d.declaredProgramId).maybeSingle();
   if (!dp) return { ok: false, error: "Program not found." };
   const { data: used } = await supabase.from("evidence_files").select("size_bytes").eq("declared_program_id", dp.id).is("removed_at", null);
