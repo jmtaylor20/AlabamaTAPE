@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { assignReviewer, nominate, releaseNotification, removeSelection, revokeAssignment, runDraw, saveProgramReviewNotes, saveSchedule, setLeaReviewStatus, setTarget } from "@/lib/actions/cycles";
 import { saveConsistencyMeeting } from "@/lib/actions/review";
+import { DraftButtons } from "@/lib/components/draft-buttons";
 import { requireUser } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { eligibilityReason, fmtDate, fmtDateTime, fmtRange, monthName, statusLabel } from "@/lib/format";
@@ -250,6 +251,10 @@ export default async function LeaReviewPage({ params, searchParams }: { params: 
           {(contacts ?? []).length === 0 ? <Empty>No contacts on file. The CTE Director is listed under the system&apos;s people once invited.</Empty> : (
             <ul className="divide-y divide-line text-sm">{(contacts ?? []).map((c, i) => <li key={i} className="py-2">{c.display_name} <span className="text-ink-muted">({c.email ?? "no email"})</span> <Badge>{statusLabel(c.contact_role)}</Badge></li>)}</ul>
           )}
+        </Card>
+        <Card title="Messages">
+          <p className="mb-2 text-sm text-ink-muted">Draft from the records, review, then approve and send. Before release, only the check-in and declaration messages can go to the district.</p>
+          <DraftButtons leaReviewId={id} returnTo={here} steps={[{ step: "check_in", label: "Check-in" }, { step: "declaration_window", label: "Declaration window" }, { step: "reviewer_assignment", label: "Reviewer assignment (staff)" }, { step: "notification", label: "Notification" }, { step: "evidence_reminder", label: "Evidence reminder" }, { step: "scope_change", label: "Change notice" }]} />
         </Card>
         <Card title="Consistency meeting">
           <p className="mb-2 text-sm text-ink-muted">Reviewers compare scores across this system&apos;s programs before anything is finalized. No program review can be finalized until a meeting is recorded here.</p>

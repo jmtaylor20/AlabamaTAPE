@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { clearFinding, deleteAuditSample, finalizeReview, reopenReview, saveAuditSample, saveDeskAudit, saveEpicScore, saveFinding, saveReviewerScore, saveSectionComment, sendDeskAudit } from "@/lib/actions/review";
 import { hasFreshMfa, requireUser } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
+import { DraftButtons } from "@/lib/components/draft-buttons";
 import { OnsiteChecklist } from "@/lib/components/onsite-checklist";
 import { loadProgram } from "@/lib/components/program";
 import { fmtDate, fmtDateTime, fmtRange, statusLabel } from "@/lib/format";
@@ -49,6 +50,7 @@ export default async function ReviewWorkspacePage({ params, searchParams }: { pa
             {canWrite && !site.deskAudit?.sent_at && <div className="flex flex-wrap gap-2"><Button type="submit" variant="secondary">Save draft</Button></div>}
           </form>
           {canWrite && site.deskAudit && !site.deskAudit.sent_at && <form action={sendDeskAudit} className="mt-2"><input type="hidden" name="site_id" value={site.id} /><input type="hidden" name="return_to" value={here} /><Button type="submit">Send to the Director</Button></form>}
+          {(roles.isReviewer || roles.admin) && <div className="mt-3 border-t border-line pt-3"><p className="mb-1 text-xs text-ink-muted">Message drafts for this program:</p><DraftButtons leaReviewId={site.lea_review_id} programReviewId={site.program_review_id} returnTo={here} steps={[{ step: "desk_audit", label: "Desk audit email" }, { step: "conclusion", label: "Conclusion email" }]} /></div>}
         </Card>
 
         <Card title="Finalize">

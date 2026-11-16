@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { addPipNote, closePip, concludeReview, createPip, saveGoals, saveProgress } from "@/lib/actions/pips";
 import { requireUser } from "@/lib/auth/session";
+import { DraftButtons } from "@/lib/components/draft-buttons";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { loadProgram } from "@/lib/components/program";
 import { fmtDate, fmtDateTime, pipMonth, statusLabel } from "@/lib/format";
@@ -52,6 +53,7 @@ export default async function PipPage({ params, searchParams }: { params: Promis
           </div>
           {pip.status === "closed" && <div className="mt-4"><Alert tone="success" title={`Closed ${fmtDateTime(pip.closed_at)}`}>{pip.close_note}</Alert></div>}
           {pip.escalations.length > 0 && <div className="mt-4"><Alert tone="warning" title="Escalations">{pip.escalations.map((e) => `Month ${e.month}: ${e.open_goals} goal${e.open_goals === 1 ? "" : "s"} open, ${fmtDate(e.notified_at)}`).join(". ")}. The cluster administrator and TAPE liaison are informed; no approval is needed.</Alert></div>}
+          {(roles.isReviewer || roles.admin) && <div className="mt-4"><DraftButtons leaReviewId={site.lea_review_id} programReviewId={site.program_review_id} pipId={pip.id} returnTo={here} steps={[{ step: "pip_followup", label: "Monthly follow-up email" }, { step: "pip_escalation", label: "Escalation to cluster admin (staff)" }]} /></div>}
           {site.status !== "concluded" && (roles.isReviewer || roles.admin) && (
             <form action={concludeReview} className="mt-4"><input type="hidden" name="program_review_id" value={site.program_review_id} /><input type="hidden" name="return_to" value={here} /><Button type="submit" variant="secondary">Conclude the review</Button></form>
           )}
