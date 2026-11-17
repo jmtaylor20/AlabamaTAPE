@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { roleLabel } from "@/lib/components/shell";
 import { createUserClient } from "@/lib/supabase/server";
-import { Alert, Badge, Button, Card, Empty, Field, Input, PageHeader, Select, Table, td, th } from "@/lib/ui";
+import { Alert, Badge, Button, Card, Empty, Field, Input, PageHeader, Select, Table, td, th, Disclosure } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "My LEA" };
 const here = "/app/lea";
@@ -53,16 +53,18 @@ export default async function LeaHomePage({ searchParams }: { searchParams: Sear
             </Table>
           )}
           {manages && (
-            <form action={saveTeacher} className="mt-4 grid gap-3 sm:grid-cols-4">
-              <input type="hidden" name="lea_id" value={leaId} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="status" value="active" />
-              {year && <input type="hidden" name="school_year_id" value={year.id} />}
-              <Field id="t_name" label="Teacher name"><Input id="t_name" name="display_name" required /></Field>
-              <Field id="t_email" label="Email"><Input id="t_email" name="email" type="email" /></Field>
-              <Field id="t_alsde" label="ALSDE teacher ID"><Input id="t_alsde" name="alsde_teacher_id" /></Field>
-              <Field id="t_contract" label="Contract"><Select id="t_contract" name="contract_type" defaultValue="nine_month"><option value="nine_month">9 month</option><option value="extended">Extended (9.5 months or more)</option></Select></Field>
-              <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="first_year" className="h-5 w-5" /> First-year teacher this school year</label>
-              <div className="sm:col-span-4"><Button type="submit" variant="secondary">Add teacher</Button></div>
-            </form>
+            <Disclosure label="Add a teacher" className="mt-4">
+              <form action={saveTeacher} className="grid gap-3 sm:grid-cols-4">
+                <input type="hidden" name="lea_id" value={leaId} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="status" value="active" />
+                {year && <input type="hidden" name="school_year_id" value={year.id} />}
+                <Field id="t_name" label="Teacher name"><Input id="t_name" name="display_name" required /></Field>
+                <Field id="t_email" label="Email"><Input id="t_email" name="email" type="email" /></Field>
+                <Field id="t_alsde" label="ALSDE teacher ID"><Input id="t_alsde" name="alsde_teacher_id" /></Field>
+                <Field id="t_contract" label="Contract"><Select id="t_contract" name="contract_type" defaultValue="nine_month"><option value="nine_month">9 month</option><option value="extended">Extended (9.5 months or more)</option></Select></Field>
+                <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="first_year" className="h-5 w-5" /> First-year teacher this school year</label>
+                <div className="sm:col-span-4"><Button type="submit" variant="secondary">Add teacher</Button></div>
+              </form>
+            </Disclosure>
           )}
         </Card>
 
@@ -104,14 +106,16 @@ export default async function LeaHomePage({ searchParams }: { searchParams: Sear
               <>
                 <h3 className="mt-5 text-sm font-semibold">Invite a teacher or staff member</h3>
                 <p className="text-sm text-ink-muted">Approved domains for your system: {(domains ?? []).map((d) => d.domain).join(", ") || "none yet"}.</p>
-                <form action={createInvitation} className="mt-2 grid gap-3 sm:grid-cols-2">
-                  <input type="hidden" name="lea_id" value={leaId} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="cluster_code" value="" />
-                  <Field id="inv_email" label="Email"><Input id="inv_email" name="email" type="email" required /></Field>
-                  <Field id="inv_name" label="Name (optional)"><Input id="inv_name" name="display_name" /></Field>
-                  <Field id="inv_role" label="Role"><Select id="inv_role" name="role" defaultValue="teacher"><option value="teacher">Teacher (uploads evidence for their own programs)</option><option value="lea_staff">LEA Staff (same view as you, cannot submit scores)</option></Select></Field>
-                  <Field id="inv_teacher" label="Link to teacher record (teachers only)"><Select id="inv_teacher" name="teacher_id"><option value="">None</option>{(teachers ?? []).filter((t) => !t.profile_id).map((t) => <option key={t.id} value={t.id}>{t.display_name}</option>)}</Select></Field>
-                  <div className="sm:col-span-2"><Button type="submit" variant="secondary">Create invitation</Button></div>
-                </form>
+                <Disclosure label="Invite a teacher or staff member" className="mt-4">
+                  <form action={createInvitation} className="grid gap-3 sm:grid-cols-2">
+                    <input type="hidden" name="lea_id" value={leaId} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="cluster_code" value="" />
+                    <Field id="inv_email" label="Email"><Input id="inv_email" name="email" type="email" required /></Field>
+                    <Field id="inv_name" label="Name (optional)"><Input id="inv_name" name="display_name" /></Field>
+                    <Field id="inv_role" label="Role"><Select id="inv_role" name="role" defaultValue="teacher"><option value="teacher">Teacher (uploads evidence for their own programs)</option><option value="lea_staff">LEA Staff (same view as you, cannot submit scores)</option></Select></Field>
+                    <Field id="inv_teacher" label="Link to teacher record (teachers only)"><Select id="inv_teacher" name="teacher_id"><option value="">None</option>{(teachers ?? []).filter((t) => !t.profile_id).map((t) => <option key={t.id} value={t.id}>{t.display_name}</option>)}</Select></Field>
+                    <div className="sm:col-span-2"><Button type="submit" variant="secondary">Create invitation</Button></div>
+                  </form>
+                </Disclosure>
                 <ul className="mt-4 divide-y divide-line text-sm">
                   {(invitations ?? []).filter((i) => !i.accepted_at).map((inv) => {
                     const state = inv.revoked_at ? "Revoked" : new Date(inv.expires_at) < new Date() ? "Expired" : "Open";

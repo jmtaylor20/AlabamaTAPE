@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { MONTHS, fmtDate, fmtRange, monthName, statusLabel } from "@/lib/format";
 import { createUserClient } from "@/lib/supabase/server";
-import { Badge, Button, Card, Empty, Field, Input, LinkButton, PageHeader, Select, Table, td, th } from "@/lib/ui";
+import { Badge, Button, Card, Empty, Field, Input, LinkButton, PageHeader, Select, Table, td, th, Disclosure } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Cycle" };
 
@@ -43,7 +43,7 @@ export default async function CyclePage({ params, searchParams }: { params: Prom
                 return (
                   <tr key={r.id}>
                     <td className={td}>{monthName(r.review_month)} {r.review_year}{r.is_carryover && <> <Badge tone="warn">Carryover</Badge></>}</td>
-                    <td className={td}><Link href={`/app/admin/reviews/${r.id}`} className="font-semibold text-brand underline">{lea?.name}</Link> <span className="font-mono text-xs text-ink-muted">{lea?.code_is_placeholder ? "code pending" : lea?.system_code}</span></td>
+                    <td className={td}><Link href={`/app/admin/reviews/${r.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{lea?.name}</Link> <span className="font-mono text-xs text-ink-muted">{lea?.code_is_placeholder ? "code pending" : lea?.system_code}</span></td>
                     <td className={`${td} tabular-nums`}>{programs}</td>
                     <td className={td}>{fmtDate(notif?.override_on ?? notif?.computed_on)}</td>
                     <td className={td}>{fmtRange(r.visit_start, r.visit_end)}</td>
@@ -55,20 +55,22 @@ export default async function CyclePage({ params, searchParams }: { params: Prom
           )}
         </div>
         <Card title="Add a system to this cycle">
-          <form action={addToComplianceList} className="flex flex-col gap-3">
-            <input type="hidden" name="cycle_id" value={cycle.id} />
-            <Field id="a_lea" label="System">
-              <Select id="a_lea" name="lea_id" required>
-                {(leas ?? []).filter((l) => !listed.has(l.id)).map((l) => <option key={l.id} value={l.id}>{l.system_code} {l.name}</option>)}
-              </Select>
-            </Field>
-            <Field id="a_month" label="Review month">
-              <Select id="a_month" name="review_month" defaultValue="10">{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</Select>
-            </Field>
-            <Field id="a_year" label="Review year"><Input id="a_year" name="review_year" type="number" defaultValue={startYear} min={2020} max={2100} required /></Field>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_carryover" className="h-5 w-5" /> Carryover from last year (not on the compliance list)</label>
-            <Button type="submit" variant="secondary">Add system</Button>
-          </form>
+          <Disclosure label="Add a system" className="mt-4">
+            <form action={addToComplianceList} className="flex flex-col gap-3">
+              <input type="hidden" name="cycle_id" value={cycle.id} />
+              <Field id="a_lea" label="System">
+                <Select id="a_lea" name="lea_id" required>
+                  {(leas ?? []).filter((l) => !listed.has(l.id)).map((l) => <option key={l.id} value={l.id}>{l.system_code} {l.name}</option>)}
+                </Select>
+              </Field>
+              <Field id="a_month" label="Review month">
+                <Select id="a_month" name="review_month" defaultValue="10">{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</Select>
+              </Field>
+              <Field id="a_year" label="Review year"><Input id="a_year" name="review_year" type="number" defaultValue={startYear} min={2020} max={2100} required /></Field>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="is_carryover" className="h-5 w-5" /> Carryover from last year (not on the compliance list)</label>
+              <Button type="submit" variant="secondary">Add system</Button>
+            </form>
+          </Disclosure>
         </Card>
       </div>
     </>

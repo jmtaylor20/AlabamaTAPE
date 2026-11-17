@@ -33,7 +33,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
           {rows.map((p) => (
             <tr key={p.id}>
               {user.isStaff && <td className={td}>{(p.leas as unknown as { name: string } | null)?.name}</td>}
-              <td className={td}><Link href={`/app/programs/${p.id}`} className="font-semibold text-brand underline"><span className="font-mono text-xs">{p.program_code}</span> {(p.program_catalog as unknown as { name: string } | null)?.name}</Link></td>
+              <td className={td}><Link href={`/app/programs/${p.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2"><span className="font-mono text-xs">{p.program_code}</span> {(p.program_catalog as unknown as { name: string } | null)?.name}</Link></td>
               <td className={td}>{(p.home as unknown as { name: string; school_code: string } | null)?.name ?? "System-wide"}</td>
               <td className={td}>{((p.declared_program_teachers as unknown as { teachers: { display_name: string } | null }[]) ?? []).map((t) => t.teachers?.display_name).filter(Boolean).join(", ")}</td>
               <td className={`${td} tabular-nums`}>{fileCount.get(p.id) ?? 0}</td>

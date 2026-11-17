@@ -3,8 +3,10 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { fmtDate, fmtRange, monthName, statusLabel } from "@/lib/format";
+
+type Count = { lea_id: string; lea_name: string; program_code: string; program_name: string; review_month: number; review_year: number; status: string; released: boolean; finalized: boolean; level2: number; level1: number; open_findings: number; pip_status: string | null; pip_due: string | null };
 import { createUserClient } from "@/lib/supabase/server";
-import { Alert, Badge, Card, Empty, PageHeader, Table, td, th } from "@/lib/ui";
+import { Alert, Badge, Card, Code, Empty, PageHeader, Table, td, th } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Reviews" };
 
@@ -21,6 +23,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
   type Row = { id: string; assignment_role: string; program_reviews: { id: string; program_code: string; status: string; visit_date: string | null; finalized_at: string | null; program_catalog: { name: string } | null; lea_reviews: { id: string; review_month: number; review_year: number; visit_start: string | null; visit_end: string | null; released_at: string | null; leas: { name: string } | null } | null; program_review_sites: { id: string; school_id: string | null }[] } | null };
   const assigned = ((mine ?? []) as unknown as Row[]).filter((r) => r.program_reviews && r.program_reviews.status !== "removed");
   const { data: year } = await supabase.from("school_years").select("id").eq("is_current", true).maybeSingle();
+  const results = ((await supabase.rpc("review_counts", { p_school_year: year?.id ?? null })).data ?? []) as Count[];
   const { data: declared } = year ? await supabase.from("declared_programs").select("id, lea_id, program_code, home_school_id").eq("school_year_id", year.id).eq("status", "active") : { data: [] };
   const leaOf = new Map<string, string>();
   for (const r of reviews ?? []) leaOf.set(r.id, (r as unknown as { lea_id?: string }).lea_id ?? "");
@@ -39,13 +42,13 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
               const dp = lr ? (declared ?? []).find((d) => d.lea_id === leaOf.get(lr.id) && d.program_code === p.program_code && (d.home_school_id ?? null) === (site?.school_id ?? null)) : undefined;
               return (
                 <tr key={r.id}>
-                  <td className={td}>{lr ? <Link href={`/app/admin/reviews/${lr.id}`} className="font-semibold text-brand underline">{lr.leas?.name}</Link> : ""}</td>
+                  <td className={td}>{lr ? <Link href={`/app/admin/reviews/${lr.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{lr.leas?.name}</Link> : ""}</td>
                   <td className={td}><span className="font-mono text-xs">{p.program_code}</span> {p.program_catalog?.name}</td>
                   <td className={td}><Badge>{statusLabel(r.assignment_role)}</Badge></td>
                   <td className={td}>{lr ? `${monthName(lr.review_month)} ${lr.review_year}` : ""}</td>
                   <td className={td}>{p.visit_date ? fmtDate(p.visit_date) : fmtRange(lr?.visit_start, lr?.visit_end)}</td>
                   <td className={td}><Badge tone={p.finalized_at ? "good" : lr?.released_at ? "neutral" : "warn"}>{lr?.released_at ? statusLabel(p.status) : "Not released"}</Badge></td>
-                  <td className={td}>{dp && lr?.released_at ? <Link href={`/app/programs/${dp.id}/review`} className="font-semibold text-brand underline">Open review</Link> : ""}</td>
+                  <td className={td}>{dp && lr?.released_at ? <Link href={`/app/programs/${dp.id}/review`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">Open review</Link> : ""}</td>
                 </tr>
               );
             })}
@@ -63,7 +66,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
               return (
                 <tr key={r.id}>
                   <td className={td}>{monthName(r.review_month)} {r.review_year}</td>
-                  <td className={td}><Link href={`/app/admin/reviews/${r.id}`} className="font-semibold text-brand underline">{lea?.name}</Link></td>
+                  <td className={td}><Link href={`/app/admin/reviews/${r.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{lea?.name}</Link></td>
                   <td className={`${td} tabular-nums`}>{count}</td>
                   <td className={td}>{fmtDate(notif?.override_on ?? notif?.computed_on)}</td>
                   <td className={td}>{r.visit_start ? fmtRange(r.visit_start, r.visit_end) : r.choice1_start ? `Choices offered` : "Open"}</td>
@@ -71,6 +74,22 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
                 </tr>
               );
             })}
+          </Table>
+        )}
+      </Card>
+      <Card title="Results this year" className="mt-6" description="Scores and findings appear once a review is finalized." actions={<><a href="/app/export/reviews.xlsx" className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">Export reviews</a><a href="/app/export/findings.xlsx" className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">Export findings</a></>}>
+        {results.length === 0 ? <Empty>No program reviews in scope.</Empty> : (
+          <Table caption="Results this year" head={<tr><th className={th}>System</th><th className={th}>Program</th><th className={th}>Status</th><th className={th}>Level 1</th><th className={th}>Open findings</th><th className={th}>Improvement plan</th></tr>}>
+            {results.map((r, i) => (
+              <tr key={i}>
+                <td className={td}>{r.lea_name}<span className="block text-xs text-ink-muted">{monthName(r.review_month)} {r.review_year}</span></td>
+                <td className={td}>{r.program_name} <Code>{r.program_code}</Code></td>
+                <td className={td}><Badge tone={r.finalized ? "good" : r.released ? "neutral" : "warn"}>{r.released ? statusLabel(r.status) : "Not released"}</Badge></td>
+                <td className={`${td} tabular-nums`}>{r.finalized ? Number(r.level1) : ""}</td>
+                <td className={`${td} tabular-nums`}>{Number(r.open_findings) || ""}</td>
+                <td className={td}>{r.pip_status ? <Badge tone={r.pip_status === "open" ? "warn" : "good"}>{statusLabel(r.pip_status)}{r.pip_due ? `, due ${fmtDate(r.pip_due)}` : ""}</Badge> : ""}</td>
+              </tr>
+            ))}
           </Table>
         )}
       </Card>

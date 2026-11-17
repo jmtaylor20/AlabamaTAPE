@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { roleLabel } from "@/lib/components/shell";
 import { createUserClient } from "@/lib/supabase/server";
-import { Badge, Button, Card, Empty, Field, Input, PageHeader, Select, Table, td, th } from "@/lib/ui";
+import { Badge, Button, Card, Empty, Field, Input, PageHeader, Select, Table, td, th, Disclosure } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "LEA" };
 
@@ -63,11 +63,13 @@ export default async function LeaDetailPage({ params, searchParams }: { params: 
               ))}
             </ul>
           )}
-          <form action={saveDomain} className="mt-4 flex flex-wrap items-end gap-3">
-            <input type="hidden" name="lea_id" value={lea.id} /><input type="hidden" name="return_to" value={here} />
-            <div className="min-w-56 flex-1"><Field id="domain" label="Add a domain" hint="Example: lcschools.org"><Input id="domain" name="domain" required /></Field></div>
-            <Button type="submit" variant="secondary">Approve</Button>
-          </form>
+          <Disclosure label="Add a domain" className="mt-4">
+            <form action={saveDomain} className="flex flex-wrap items-end gap-3">
+              <input type="hidden" name="lea_id" value={lea.id} /><input type="hidden" name="return_to" value={here} />
+              <div className="min-w-56 flex-1"><Field id="domain" label="Add a domain" hint="Example: lcschools.org"><Input id="domain" name="domain" required /></Field></div>
+              <Button type="submit" variant="secondary">Approve</Button>
+            </form>
+          </Disclosure>
         </Card>
 
         <Card title="Schools">
@@ -76,17 +78,19 @@ export default async function LeaDetailPage({ params, searchParams }: { params: 
               <tr key={s.id}><td className={`${td} font-mono`}>{s.school_code}</td><td className={td}>{s.name}</td><td className={td}>{s.school_type.replaceAll("_", " ")}</td><td className={td}><Badge tone={s.active ? "good" : "bad"}>{s.active ? "Active" : "Inactive"}</Badge></td></tr>
             ))}
           </Table>
-          <form action={saveSchool} className="mt-4 grid gap-3 sm:grid-cols-3">
-            <input type="hidden" name="lea_id" value={lea.id} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="active" value="true" />
-            <Field id="school_code" label="School code"><Input id="school_code" name="school_code" pattern="[0-9]{4}" required /></Field>
-            <Field id="school_name" label="Name"><Input id="school_name" name="name" required /></Field>
-            <Field id="school_type" label="Type">
-              <Select id="school_type" name="school_type" defaultValue="high_school">
-                <option value="high_school">High school</option><option value="middle_school">Middle school</option><option value="career_tech_center">Career tech center</option><option value="college">College</option><option value="other">Other</option>
-              </Select>
-            </Field>
-            <div className="sm:col-span-3"><Button type="submit" variant="secondary">Add school</Button></div>
-          </form>
+          <Disclosure label="Add a school" className="mt-4">
+            <form action={saveSchool} className="grid gap-3 sm:grid-cols-3">
+              <input type="hidden" name="lea_id" value={lea.id} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="active" value="true" />
+              <Field id="school_code" label="School code"><Input id="school_code" name="school_code" pattern="[0-9]{4}" required /></Field>
+              <Field id="school_name" label="Name"><Input id="school_name" name="name" required /></Field>
+              <Field id="school_type" label="Type">
+                <Select id="school_type" name="school_type" defaultValue="high_school">
+                  <option value="high_school">High school</option><option value="middle_school">Middle school</option><option value="career_tech_center">Career tech center</option><option value="college">College</option><option value="other">Other</option>
+                </Select>
+              </Field>
+              <div className="sm:col-span-3"><Button type="submit" variant="secondary">Add school</Button></div>
+            </form>
+          </Disclosure>
         </Card>
 
         <Card title="Seats and invitations">
@@ -116,15 +120,17 @@ export default async function LeaDetailPage({ params, searchParams }: { params: 
               );
             })}
           </ul>
-          <form action={createInvitation} className="mt-4 grid gap-3 sm:grid-cols-2">
-            <input type="hidden" name="lea_id" value={lea.id} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="cluster_code" value="" /><input type="hidden" name="teacher_id" value="" />
-            <Field id="inv_email" label="Invite by email" hint="Must use an approved domain above."><Input id="inv_email" name="email" type="email" required /></Field>
-            <Field id="inv_name" label="Name (optional)"><Input id="inv_name" name="display_name" /></Field>
-            <Field id="inv_role" label="Role">
-              <Select id="inv_role" name="role" defaultValue="cte_director"><option value="cte_director">CTE Director</option><option value="lea_staff">LEA Staff</option><option value="teacher">Teacher</option></Select>
-            </Field>
-            <div className="self-end"><Button type="submit" variant="secondary">Create invitation</Button></div>
-          </form>
+          <Disclosure label="Invite someone" className="mt-4">
+            <form action={createInvitation} className="grid gap-3 sm:grid-cols-2">
+              <input type="hidden" name="lea_id" value={lea.id} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="cluster_code" value="" /><input type="hidden" name="teacher_id" value="" />
+              <Field id="inv_email" label="Invite by email" hint="Must use an approved domain above."><Input id="inv_email" name="email" type="email" required /></Field>
+              <Field id="inv_name" label="Name (optional)"><Input id="inv_name" name="display_name" /></Field>
+              <Field id="inv_role" label="Role">
+                <Select id="inv_role" name="role" defaultValue="cte_director"><option value="cte_director">CTE Director</option><option value="lea_staff">LEA Staff</option><option value="teacher">Teacher</option></Select>
+              </Field>
+              <div className="self-end"><Button type="submit" variant="secondary">Create invitation</Button></div>
+            </form>
+          </Disclosure>
         </Card>
 
         <Card title="Teachers" className="lg:col-span-2">
@@ -141,18 +147,20 @@ export default async function LeaDetailPage({ params, searchParams }: { params: 
               );
             })}
           </Table>
-          <form action={saveTeacher} className="mt-4 grid gap-3 sm:grid-cols-4">
-            <input type="hidden" name="lea_id" value={lea.id} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="status" value="active" />
-            {year && <input type="hidden" name="school_year_id" value={year.id} />}
-            <Field id="t_name" label="Teacher name"><Input id="t_name" name="display_name" required /></Field>
-            <Field id="t_email" label="Email"><Input id="t_email" name="email" type="email" /></Field>
-            <Field id="t_alsde" label="ALSDE teacher ID"><Input id="t_alsde" name="alsde_teacher_id" /></Field>
-            <Field id="t_contract" label="Contract">
-              <Select id="t_contract" name="contract_type" defaultValue="nine_month"><option value="nine_month">9 month</option><option value="extended">Extended (9.5 months or more)</option></Select>
-            </Field>
-            <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="first_year" className="h-5 w-5" /> First-year teacher this school year</label>
-            <div className="sm:col-span-4"><Button type="submit" variant="secondary">Add teacher</Button></div>
-          </form>
+          <Disclosure label="Add a teacher" className="mt-4">
+            <form action={saveTeacher} className="grid gap-3 sm:grid-cols-4">
+              <input type="hidden" name="lea_id" value={lea.id} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="status" value="active" />
+              {year && <input type="hidden" name="school_year_id" value={year.id} />}
+              <Field id="t_name" label="Teacher name"><Input id="t_name" name="display_name" required /></Field>
+              <Field id="t_email" label="Email"><Input id="t_email" name="email" type="email" /></Field>
+              <Field id="t_alsde" label="ALSDE teacher ID"><Input id="t_alsde" name="alsde_teacher_id" /></Field>
+              <Field id="t_contract" label="Contract">
+                <Select id="t_contract" name="contract_type" defaultValue="nine_month"><option value="nine_month">9 month</option><option value="extended">Extended (9.5 months or more)</option></Select>
+              </Field>
+              <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="first_year" className="h-5 w-5" /> First-year teacher this school year</label>
+              <div className="sm:col-span-4"><Button type="submit" variant="secondary">Add teacher</Button></div>
+            </form>
+          </Disclosure>
         </Card>
       </div>
     </>

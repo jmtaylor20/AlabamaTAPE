@@ -3,7 +3,7 @@ import { saveCluster, saveProgram } from "@/lib/actions/admin";
 import { requireRole } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { createUserClient } from "@/lib/supabase/server";
-import { Badge, Button, Card, Field, Input, PageHeader, Select, Table, td, th } from "@/lib/ui";
+import { Badge, Button, Card, Field, Input, PageHeader, Select, Table, td, th, Disclosure } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Programs" };
 
@@ -25,11 +25,13 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
           <ul className="divide-y divide-line text-sm">
             {(clusters ?? []).map((c) => <li key={c.code} className="flex gap-3 py-2"><span className="font-mono">{c.code}</span><span>{c.name}</span></li>)}
           </ul>
-          <form action={saveCluster} className="mt-4 flex flex-col gap-3">
-            <Field id="c_code" label="Cluster code" hint="Two digits."><Input id="c_code" name="code" pattern="[0-9]{2}" required /></Field>
-            <Field id="c_name" label="Name"><Input id="c_name" name="name" required /></Field>
-            <Button type="submit" variant="secondary">Save cluster</Button>
-          </form>
+          <Disclosure label="Add or update a cluster" className="mt-4">
+            <form action={saveCluster} className="flex flex-col gap-3">
+              <Field id="c_code" label="Cluster code" hint="Two digits."><Input id="c_code" name="code" pattern="[0-9]{2}" required /></Field>
+              <Field id="c_name" label="Name"><Input id="c_name" name="name" required /></Field>
+              <Button type="submit" variant="secondary">Save cluster</Button>
+            </form>
+          </Disclosure>
         </Card>
         <Card title="Programs">
           <Table caption="Programs" head={<tr><th className={th}>Code</th><th className={th}>Program</th><th className={th}>Cluster</th><th className={th}>Level</th><th className={th}>Flags</th></tr>}>
@@ -40,17 +42,19 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
               </tr>
             ))}
           </Table>
-          <form action={saveProgram} className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Field id="p_code" label="Program code"><Input id="p_code" name="code" pattern="[0-9]{1,3}" required /></Field>
-            <Field id="p_name" label="Name"><Input id="p_name" name="name" required /></Field>
-            <Field id="p_cluster" label="Cluster">
-              <Select id="p_cluster" name="cluster_code" required>{(clusters ?? []).map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</Select>
-            </Field>
-            <Field id="p_level" label="Level"><Select id="p_level" name="level" defaultValue="secondary"><option value="secondary">Secondary</option><option value="middle">Middle school</option></Select></Field>
-            <label className="flex items-center gap-2 self-end text-sm"><input type="checkbox" name="is_coop" className="h-5 w-5" /> Cooperative Education (scored on 5.2.A only)</label>
-            <label className="flex items-center gap-2 self-end text-sm"><input type="checkbox" name="active" defaultChecked className="h-5 w-5" /> Active</label>
-            <div className="sm:col-span-3"><Button type="submit" variant="secondary">Save program</Button></div>
-          </form>
+          <Disclosure label="Add or update a program" className="mt-4">
+            <form action={saveProgram} className="grid gap-3 sm:grid-cols-3">
+              <Field id="p_code" label="Program code"><Input id="p_code" name="code" pattern="[0-9]{1,3}" required /></Field>
+              <Field id="p_name" label="Name"><Input id="p_name" name="name" required /></Field>
+              <Field id="p_cluster" label="Cluster">
+                <Select id="p_cluster" name="cluster_code" required>{(clusters ?? []).map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</Select>
+              </Field>
+              <Field id="p_level" label="Level"><Select id="p_level" name="level" defaultValue="secondary"><option value="secondary">Secondary</option><option value="middle">Middle school</option></Select></Field>
+              <label className="flex items-center gap-2 self-end text-sm"><input type="checkbox" name="is_coop" className="h-5 w-5" /> Cooperative Education (scored on 5.2.A only)</label>
+              <label className="flex items-center gap-2 self-end text-sm"><input type="checkbox" name="active" defaultChecked className="h-5 w-5" /> Active</label>
+              <div className="sm:col-span-3"><Button type="submit" variant="secondary">Save program</Button></div>
+            </form>
+          </Disclosure>
         </Card>
       </div>
     </>

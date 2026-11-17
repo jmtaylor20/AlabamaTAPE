@@ -18,7 +18,7 @@ export default async function MfaPage() {
         <MfaFlow />
       </div>
       <p className="mt-8 text-sm">
-        <a href="/auth/sign-out" className="text-brand underline">
+        <a href="/auth/sign-out" className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">
           Not you? Sign out
         </a>
       </p>

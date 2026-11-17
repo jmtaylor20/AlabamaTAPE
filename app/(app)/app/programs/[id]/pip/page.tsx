@@ -109,7 +109,7 @@ export default async function PipPage({ params, searchParams }: { params: Promis
             </Card>
             <Card title="Notes and evidence">
               {pip.notes.length === 0 ? <Empty>No notes yet.</Empty> : (
-                <ul className="divide-y divide-line text-sm">{pip.notes.map((n) => { const f = files.find((x) => x.id === n.evidence_file_id); return <li key={n.id} className="py-2"><Badge>{statusLabel(n.author_role)}</Badge> <span className="text-ink-muted">{n.author ?? ""}, {fmtDateTime(n.created_at)}</span>{n.goal_id && <span className="text-xs text-ink-muted"> on {pip.goals.find((g) => g.id === n.goal_id)?.qpi_code}</span>}<span className="block">{n.body}</span>{f && <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="text-brand underline">{f.original_name}</a>}</li>; })}</ul>
+                <ul className="divide-y divide-line text-sm">{pip.notes.map((n) => { const f = files.find((x) => x.id === n.evidence_file_id); return <li key={n.id} className="py-2"><Badge>{statusLabel(n.author_role)}</Badge> <span className="text-ink-muted">{n.author ?? ""}, {fmtDateTime(n.created_at)}</span>{n.goal_id && <span className="text-xs text-ink-muted"> on {pip.goals.find((g) => g.id === n.goal_id)?.qpi_code}</span>}<span className="block">{n.body}</span>{f && <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{f.original_name}</a>}</li>; })}</ul>
               )}
               {noteRole && pip.status === "open" && (
                 <form action={addPipNote} className="mt-3 flex flex-col gap-2">

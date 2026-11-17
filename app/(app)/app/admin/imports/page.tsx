@@ -44,7 +44,7 @@ export default async function ImportsPage({ searchParams }: { searchParams: Sear
           <ul className="divide-y divide-line text-sm">
             {(jobs ?? []).map((j) => {
               const href = j.kind === "cognia_list" ? `/app/admin/imports/cognia/${j.id}` : j.kind === "declarations" ? null : `/app/admin/imports/${j.id}`;
-              return <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><span>{href ? <Link href={href} className="text-brand underline">{j.file_name}</Link> : j.file_name} <Badge>{statusLabel(j.kind)}</Badge></span><span className="text-ink-muted">{fmtDateTime(j.created_at)}</span><Badge tone={j.status === "applied" ? "good" : j.status === "discarded" ? "neutral" : "warn"}>{j.status}</Badge></li>;
+              return <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><span>{href ? <Link href={href} className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{j.file_name}</Link> : j.file_name} <Badge>{statusLabel(j.kind)}</Badge></span><span className="text-ink-muted">{fmtDateTime(j.created_at)}</span><Badge tone={j.status === "applied" ? "good" : j.status === "discarded" ? "neutral" : "warn"}>{j.status}</Badge></li>;
             })}
           </ul>
         )}

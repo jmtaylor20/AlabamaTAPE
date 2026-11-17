@@ -29,7 +29,7 @@ export default async function DraftsPage({ searchParams }: { searchParams: Searc
                 <td className={td}>{fmtDateTime(d.created_at)}</td>
                 <td className={td}>{statusLabel(d.step_key)} <Badge tone={d.audience === "district" ? "neutral" : "warn"}>{d.audience}</Badge></td>
                 <td className={td}>{lea}{prog && <span className="block text-xs text-ink-muted">{prog.program_catalog?.name}</span>}</td>
-                <td className={td}><Link href={`/app/drafts/${d.id}`} className="font-semibold text-brand underline">{d.subject}</Link></td>
+                <td className={td}><Link href={`/app/drafts/${d.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{d.subject}</Link></td>
                 <td className={td}>{(d.to_list as string[]).join(", ")}<span className="block text-xs text-ink-muted">{(d.cc_list as string[]).length} cc</span></td>
                 <td className={td}><Badge tone={d.status === "sent" ? "good" : d.status === "approved" ? "warn" : d.status === "discarded" ? "bad" : "neutral"}>{statusLabel(d.status)}</Badge>{d.sent_at && <span className="block text-xs text-ink-muted">{fmtDateTime(d.sent_at)}</span>}</td>
               </tr>

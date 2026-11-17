@@ -4,7 +4,7 @@ import { saveLea } from "@/lib/actions/admin";
 import { requireRole } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { createUserClient } from "@/lib/supabase/server";
-import { Badge, Button, Card, Field, Input, PageHeader, Select, Table, td, th } from "@/lib/ui";
+import { Badge, Button, Card, Field, Input, PageHeader, Select, Table, td, th, Disclosure } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "LEAs" };
 
@@ -23,7 +23,7 @@ export default async function LeasPage({ searchParams }: { searchParams: SearchP
           {(leas ?? []).map((lea) => (
             <tr key={lea.id}>
               <td className={`${td} font-mono`}>{lea.system_code}</td>
-              <td className={td}><Link href={`/app/admin/leas/${lea.id}`} className="font-semibold text-brand underline">{lea.name}</Link></td>
+              <td className={td}><Link href={`/app/admin/leas/${lea.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{lea.name}</Link></td>
               <td className={td}>{lea.lea_type}</td>
               <td className={`${td} tabular-nums`}>{(lea.schools as unknown as { count: number }[])[0]?.count ?? 0}</td>
               <td className={`${td} tabular-nums`}>{(lea.teachers as unknown as { count: number }[])[0]?.count ?? 0}</td>
@@ -32,17 +32,19 @@ export default async function LeasPage({ searchParams }: { searchParams: SearchP
           ))}
         </Table>
         <Card title="Add a system">
-          <form action={saveLea} className="flex flex-col gap-3">
-            <Field id="system_code" label="System code" hint="Three digits, as in ALSDE records."><Input id="system_code" name="system_code" inputMode="numeric" pattern="[0-9]{3}" required /></Field>
-            <Field id="name" label="Name"><Input id="name" name="name" required /></Field>
-            <Field id="lea_type" label="Type">
-              <Select id="lea_type" name="lea_type" defaultValue="county">
-                <option value="county">County</option><option value="city">City</option><option value="charter">Charter</option><option value="college">Community college</option><option value="other">Other</option>
-              </Select>
-            </Field>
-            <input type="hidden" name="active" value="true" />
-            <Button type="submit">Add system</Button>
-          </form>
+          <Disclosure label="Add a system" className="mt-4">
+            <form action={saveLea} className="flex flex-col gap-3">
+              <Field id="system_code" label="System code" hint="Three digits, as in ALSDE records."><Input id="system_code" name="system_code" inputMode="numeric" pattern="[0-9]{3}" required /></Field>
+              <Field id="name" label="Name"><Input id="name" name="name" required /></Field>
+              <Field id="lea_type" label="Type">
+                <Select id="lea_type" name="lea_type" defaultValue="county">
+                  <option value="county">County</option><option value="city">City</option><option value="charter">Charter</option><option value="college">Community college</option><option value="other">Other</option>
+                </Select>
+              </Field>
+              <input type="hidden" name="active" value="true" />
+              <Button type="submit">Add system</Button>
+            </form>
+          </Disclosure>
         </Card>
       </div>
     </>

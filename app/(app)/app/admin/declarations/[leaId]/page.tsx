@@ -64,7 +64,7 @@ export default async function LeaDeclarationsAdminPage({ params, searchParams }:
             <Button type="submit" variant="secondary">Preview the import</Button>
           </form>
           {(jobs ?? []).length > 0 && (
-            <ul className="mt-3 divide-y divide-line text-sm">{(jobs ?? []).map((j) => <li key={j.id} className="flex items-center justify-between gap-2 py-2"><Link href={`${here}/import/${j.id}`} className="text-brand underline">{j.file_name}</Link><span className="text-ink-muted">{fmtDateTime(j.created_at)}</span><Badge tone={j.status === "applied" ? "good" : j.status === "discarded" ? "neutral" : "warn"}>{j.status}</Badge></li>)}</ul>
+            <ul className="mt-3 divide-y divide-line text-sm">{(jobs ?? []).map((j) => <li key={j.id} className="flex items-center justify-between gap-2 py-2"><Link href={`${here}/import/${j.id}`} className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{j.file_name}</Link><span className="text-ink-muted">{fmtDateTime(j.created_at)}</span><Badge tone={j.status === "applied" ? "good" : j.status === "discarded" ? "neutral" : "warn"}>{j.status}</Badge></li>)}</ul>
           )}
         </Card>
       </div>

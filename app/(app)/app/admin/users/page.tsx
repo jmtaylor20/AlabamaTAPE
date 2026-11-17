@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth/session";
 import { Notices, readNotices, type SearchParams } from "@/lib/components/notices";
 import { roleLabel } from "@/lib/components/shell";
 import { createUserClient } from "@/lib/supabase/server";
-import { Badge, Button, Card, Field, Input, PageHeader, Select, Table, td, th } from "@/lib/ui";
+import { Badge, Button, Card, Field, Input, PageHeader, Select, Table, td, th, Disclosure } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Users" };
 
@@ -72,15 +72,17 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
 
         <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
           <Card title="Invite someone">
-            <form action={createInvitation} className="grid gap-3">
-              <input type="hidden" name="return_to" value={here} /><input type="hidden" name="teacher_id" value="" />
-              <Field id="i_email" label="Email" hint="The domain must be approved: an ALSDE staff domain for state roles, or the LEA's domain for district roles."><Input id="i_email" name="email" type="email" required /></Field>
-              <Field id="i_name" label="Name (optional)"><Input id="i_name" name="display_name" /></Field>
-              <Field id="i_role" label="Role"><Select id="i_role" name="role">{ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</Select></Field>
-              <Field id="i_lea" label="LEA (district roles only)"><Select id="i_lea" name="lea_id"><option value="">None</option>{(leas ?? []).map((l) => <option key={l.id} value={l.id}>{l.system_code} {l.name}</option>)}</Select></Field>
-              <Field id="i_cluster" label="Cluster (cluster administrators only)"><Select id="i_cluster" name="cluster_code"><option value="">None</option>{(clusters ?? []).map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</Select></Field>
-              <Button type="submit">Create invitation</Button>
-            </form>
+            <Disclosure label="Invite someone" className="mt-4">
+              <form action={createInvitation} className="grid gap-3">
+                <input type="hidden" name="return_to" value={here} /><input type="hidden" name="teacher_id" value="" />
+                <Field id="i_email" label="Email" hint="The domain must be approved: an ALSDE staff domain for state roles, or the LEA's domain for district roles."><Input id="i_email" name="email" type="email" required /></Field>
+                <Field id="i_name" label="Name (optional)"><Input id="i_name" name="display_name" /></Field>
+                <Field id="i_role" label="Role"><Select id="i_role" name="role">{ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</Select></Field>
+                <Field id="i_lea" label="LEA (district roles only)"><Select id="i_lea" name="lea_id"><option value="">None</option>{(leas ?? []).map((l) => <option key={l.id} value={l.id}>{l.system_code} {l.name}</option>)}</Select></Field>
+                <Field id="i_cluster" label="Cluster (cluster administrators only)"><Select id="i_cluster" name="cluster_code"><option value="">None</option>{(clusters ?? []).map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</Select></Field>
+                <Button type="submit">Create invitation</Button>
+              </form>
+            </Disclosure>
           </Card>
           <Card title="Recent invitations">
             <ul className="divide-y divide-line text-sm">

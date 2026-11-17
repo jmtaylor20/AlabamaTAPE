@@ -1,21 +1,35 @@
 @import "tailwindcss";
 
-/* Design tokens. Colors meet WCAG 2.1 AA contrast against their paired surfaces. */
+/*
+  Design tokens. One calm palette: deep green for the department, warm paper
+  for the page, a single gold accent for the current item and key numbers.
+  Every pairing meets WCAG 2.1 AA.
+*/
 @theme {
-  --color-ink: #16202b;
-  --color-ink-muted: #4f5d6b;
-  --color-paper: #f6f7f5;
+  --color-ink: #1b2430;
+  --color-ink-muted: #5b6672;
+  --color-ink-faint: #8a939d;
+  --color-paper: #f4f3ee;
   --color-surface: #ffffff;
-  --color-line: #d6dcd8;
-  --color-brand: #0b5d4b;
-  --color-brand-strong: #084536;
-  --color-brand-soft: #e3efea;
+  --color-surface-raised: #fbfaf7;
+  --color-line: #dcdad2;
+  --color-line-strong: #c4c1b6;
+  --color-brand: #0f5e4e;
+  --color-brand-strong: #0a463a;
+  --color-brand-soft: #e6f0ec;
+  --color-brand-ink: #0b3d33;
+  --color-accent: #b8860b;
+  --color-accent-soft: #fbf3dc;
   --color-warning: #8a5a00;
   --color-warning-soft: #fff3d6;
   --color-danger: #a4262c;
   --color-danger-soft: #fbe9ea;
   --color-success: #1f6f3f;
-  --font-sans: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --color-success-soft: #e4f2e9;
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+  --radius-card: 0.75rem;
+  --shadow-card: 0 1px 2px rgb(27 36 48 / 0.05), 0 1px 1px rgb(27 36 48 / 0.03);
 }
 
 html {
@@ -26,13 +40,55 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Type scale. Headings are set once here so pages do not improvise. */
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+h2 {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+h3 {
+  font-size: 0.95rem;
+  line-height: 1.35;
+  font-weight: 650;
+}
+p {
+  max-width: 68ch;
+}
+td p,
+th p,
+li p {
+  max-width: none;
+}
+
+table {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Keyboard focus is always visible. */
 :focus-visible {
-  outline: 3px solid var(--color-brand);
+  outline: 3px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* A disclosure's summary is a button, so it looks like one and never shows the triangle. */
+summary {
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

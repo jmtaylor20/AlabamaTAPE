@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { ADMIN_ID, MOCK_URL, signInAs } from "./session";
 
 /**
  * Proves client components come alive under the production security headers.
@@ -8,7 +9,6 @@ import { expect, test, type Page } from "@playwright/test";
  * These checks fail in exactly that case.
  */
 
-const MOCK_URL = process.env.E2E_MOCK_SUPABASE_URL ?? "http://127.0.0.1:3101";
 // The browser bundle bakes the Supabase URL in at build time, so the MFA walk
 // only works on a build made with the mock address. CI builds that way.
 const builtAgainstMock = process.env.NEXT_PUBLIC_SUPABASE_URL === MOCK_URL && !process.env.E2E_BASE_URL;
@@ -85,22 +85,7 @@ test.describe("with a mocked identity provider", () => {
   test.beforeEach(async ({ context, request }) => {
     await request.delete(`${MOCK_URL}/__calls`);
     // A fabricated session at assurance level 1: signed in, authenticator not yet enrolled.
-    const now = Math.floor(Date.now() / 1000);
-    const b64 = (v: unknown) => Buffer.from(JSON.stringify(v)).toString("base64url");
-    const jwt = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({
-      sub: "00000000-0000-4000-8000-00000000e2e1",
-      email: "reviewer.one@example.test",
-      aud: "authenticated",
-      role: "authenticated",
-      aal: "aal1",
-      amr: [{ method: "otp", timestamp: now }],
-      session_id: "00000000-0000-4000-8000-00000000se55",
-      iat: now,
-      exp: now + 3600,
-    })}.e2e-not-a-signature`;
-    const session = { access_token: jwt, refresh_token: "e2e-refresh", token_type: "bearer", expires_in: 3600, expires_at: now + 3600, user: { id: "00000000-0000-4000-8000-00000000e2e1", email: "reviewer.one@example.test", aud: "authenticated", role: "authenticated" } };
-    const ref = new URL(MOCK_URL).hostname.split(".")[0];
-    await context.addCookies([{ name: `sb-${ref}-auth-token`, value: `base64-${b64(session)}`, domain: "127.0.0.1", path: "/" }]);
+    await signInAs(context, { sub: ADMIN_ID, email: "reviewer.one@example.test", aal: "aal1" });
   });
 
   test("the MFA page reaches the enroll stage", async ({ page }) => {

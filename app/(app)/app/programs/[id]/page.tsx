@@ -8,7 +8,7 @@ import { loadProgram } from "@/lib/components/program";
 import { fmtBytes } from "@/lib/evidence/rules";
 import { fmtDate, fmtDateTime, fmtRange, statusLabel } from "@/lib/format";
 import { passRate } from "@/lib/instrument/applicability";
-import { Alert, Badge, Button, Card, Empty, Field, Input, LinkButton, PageHeader, Table, td, th } from "@/lib/ui";
+import { Alert, Badge, Button, Card, Empty, Field, Input, LinkButton, PageHeader, Table, td, th, Disclosure } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Program" };
 
@@ -71,7 +71,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
                 const openable = f.scan_status === "clean" && !f.quarantined && !f.removed_at;
                 return (
                   <tr key={f.id} className={f.removed_at ? "opacity-60" : ""}>
-                    <td className={td}>{openable ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="font-semibold text-brand underline">{f.original_name}</a> : <span>{f.original_name}</span>}<span className="block text-xs text-ink-muted">{fmtBytes(Number(f.size_bytes))}{teacher ? `, ${teacher.display_name}` : ""}{f.note ? `, ${f.note}` : ""}</span></td>
+                    <td className={td}>{openable ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{f.original_name}</a> : <span>{f.original_name}</span>}<span className="block text-xs text-ink-muted">{fmtBytes(Number(f.size_bytes))}{teacher ? `, ${teacher.display_name}` : ""}{f.note ? `, ${f.note}` : ""}</span></td>
                     <td className={td}>{links.length ? links.map((c) => <span key={c} className="mr-1 inline-block rounded bg-brand-soft px-1 font-mono text-xs">{c}</span>) : <span className="text-ink-muted">Not linked</span>}</td>
                     <td className={td}>
                       {f.removed_at ? <Badge tone="bad">Removed</Badge> : f.quarantined ? <Badge tone="bad">Quarantined</Badge> : f.scan_status === "clean" ? <Badge tone="good">Clean</Badge> : f.scan_status === "pending" ? <Badge tone="warn">Scanning</Badge> : <Badge tone="bad">{statusLabel(f.scan_status)}</Badge>}
@@ -112,7 +112,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
           {otherFiles.length > 0 && (
             <>
               <h3 className="mt-4 text-sm font-semibold">Reports and prior-year forms</h3>
-              <ul className="divide-y divide-line text-sm">{otherFiles.filter((f) => !f.removed_at).map((f) => <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><span>{f.scan_status === "clean" && !f.quarantined ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="text-brand underline">{f.original_name}</a> : f.original_name} <Badge>{statusLabel(f.category)}{f.form_year_label ? ` ${f.form_year_label}` : ""}</Badge></span><Badge tone={f.scan_status === "clean" ? "good" : "warn"}>{f.quarantined ? "Quarantined" : statusLabel(f.scan_status)}</Badge></li>)}</ul>
+              <ul className="divide-y divide-line text-sm">{otherFiles.filter((f) => !f.removed_at).map((f) => <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><span>{f.scan_status === "clean" && !f.quarantined ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{f.original_name}</a> : f.original_name} <Badge>{statusLabel(f.category)}{f.form_year_label ? ` ${f.form_year_label}` : ""}</Badge></span><Badge tone={f.scan_status === "clean" ? "good" : "warn"}>{f.quarantined ? "Quarantined" : statusLabel(f.scan_status)}</Badge></li>)}</ul>
             </>
           )}
         </Card>
@@ -139,13 +139,15 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
               </ul>
             )}
             {roles.manages && (
-              <form action={saveCredential} className="mt-3 grid gap-2 sm:grid-cols-[2fr_1fr_1fr_auto]">
-                <input type="hidden" name="id" value="" /><input type="hidden" name="declared_program_id" value={dp.id} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="source_file_id" value="" />
-                <Input name="credential_name" placeholder="Credential name" aria-label="Credential name" required className="min-h-9 text-sm" />
-                <Input name="test_takers" type="number" min={0} placeholder="Sat" aria-label="Test takers" required className="min-h-9 text-sm" />
-                <Input name="passers" type="number" min={0} placeholder="Passed" aria-label="Passers" required className="min-h-9 text-sm" />
-                <Button type="submit" variant="secondary" className="min-h-9 px-3 text-xs">Add</Button>
-              </form>
+              <Disclosure label="Add a credential result" className="mt-4">
+                <form action={saveCredential} className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_auto]">
+                  <input type="hidden" name="id" value="" /><input type="hidden" name="declared_program_id" value={dp.id} /><input type="hidden" name="return_to" value={here} /><input type="hidden" name="source_file_id" value="" />
+                  <Input name="credential_name" placeholder="Credential name" aria-label="Credential name" required className="min-h-9 text-sm" />
+                  <Input name="test_takers" type="number" min={0} placeholder="Sat" aria-label="Test takers" required className="min-h-9 text-sm" />
+                  <Input name="passers" type="number" min={0} placeholder="Passed" aria-label="Passers" required className="min-h-9 text-sm" />
+                  <Button type="submit" variant="secondary" className="min-h-9 px-3 text-xs">Add</Button>
+                </form>
+              </Disclosure>
             )}
           </Card>
         </div>
@@ -162,7 +164,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
             const count = linked.get(q.code) ?? 0;
             return (
               <tr key={q.code}>
-                <td className={td}><span className="font-mono text-xs">{q.code}</span> {q.title}{q.requiredSelfScore && <> <Badge tone="warn">Required</Badge></>}{q.assurance_based && <> <Badge>Assurance</Badge></>}{q.onsite && <> <Badge>Onsite</Badge></>}{q.per_teacher && <> <Badge>Per teacher</Badge></>}{q.satisfiedByAse && <> <Badge tone="good">ASE</Badge></>}</td>
+                <td className={td}><span className="font-mono text-xs">{q.code}</span> {q.title}<span className="block text-xs text-ink-muted">{[q.requiredSelfScore && "Required self-score", q.assurance_based && "Assurance", q.onsite && "Checked onsite", q.per_teacher && "Per teacher", q.satisfiedByAse && "Satisfied by ASE"].filter(Boolean).join(", ")}</span></td>
                 <td className={`${td} tabular-nums`}>{q.satisfiedByAse ? "See 2.1.F" : count > 0 ? <Badge tone="good">{count} file{count === 1 ? "" : "s"}</Badge> : <span className="text-ink-muted">None</span>}</td>
                 <td className={td}>{!site || roles.isTeacher ? <span className="text-ink-muted">{roles.isTeacher ? "Director only" : ""}</span> : s ? <><Badge tone={s.value === "2" ? "good" : s.value === "1" ? "bad" : "neutral"}>{s.value === "NA" ? "N/A" : `Level ${s.value}`}</Badge><span className="block text-xs text-ink-muted">v{s.version}, {fmtDateTime(s.created_at)}{s.na_reason ? `, ${s.na_reason}` : ""}{s.comment ? `, ${s.comment}` : ""}</span></> : <span className="text-ink-muted">Not scored</span>}</td>
                 {site?.locked && (() => { const r = site.scores.find((x) => x.qpi_code === q.code && x.scorer_role === "reviewer"); const f = site.findings.find((x) => x.qpi_code === q.code); return <td className={td}>{r ? <><Badge tone={r.value === "2" ? "good" : r.value === "1" ? "bad" : "neutral"}>{r.value === "NA" ? "N/A" : `Level ${r.value}`}</Badge>{f && <span className="block text-xs">{f.status === "open" ? "Finding: " : "Cleared: "}{f.body}</span>}</> : ""}</td>; })()}

@@ -58,11 +58,11 @@ export default async function LeaReviewPage() {
                   const dpId = programLink(p.program_code, site?.school_id ?? null);
                   return (
                   <tr key={p.id}>
-                    <td className={td}>{dpId ? <Link href={`/app/programs/${dpId}`} className="font-semibold text-brand underline"><span className="font-mono text-xs">{p.program_code}</span> {p.program_catalog?.name}</Link> : <><span className="font-mono text-xs">{p.program_code}</span> {p.program_catalog?.name}</>}</td>
+                    <td className={td}>{dpId ? <Link href={`/app/programs/${dpId}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2"><span className="font-mono text-xs">{p.program_code}</span> {p.program_catalog?.name}</Link> : <><span className="font-mono text-xs">{p.program_code}</span> {p.program_catalog?.name}</>}</td>
                     <td className={td}>{p.review_assignments.filter((a) => !a.revoked_at && a.assignment_role !== "cluster_admin").map((a) => a.display_name ?? a.email).join(", ") || "To be assigned"}</td>
                     <td className={td}>{p.visit_date ? fmtDate(p.visit_date) : fmtRange(full.visit_start, full.visit_end)}</td>
                     <td className={td}><Badge>{statusLabel(p.status)}</Badge></td>
-                    <td className={td}>{site?.director_submitted_at ? <Badge tone="good">Submitted</Badge> : dpId ? <Link href={`/app/programs/${dpId}`} className="text-brand underline">Upload and self-score</Link> : ""}</td>
+                    <td className={td}>{site?.director_submitted_at ? <Badge tone="good">Submitted</Badge> : dpId ? <Link href={`/app/programs/${dpId}`} className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">Upload and self-score</Link> : ""}</td>
                   </tr>
                   );
                 })}

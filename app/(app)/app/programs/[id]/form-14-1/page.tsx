@@ -100,7 +100,7 @@ export default async function Form141Page({ params, searchParams }: { params: Pr
                 const ones = ((h.form_141_items as { score: string | null }[]) ?? []).filter((i) => i.score === "1").length;
                 return <li key={h.id} className="flex items-center justify-between gap-2 py-2"><span>{yr?.label}: <Badge tone={h.status === "submitted" ? "good" : "warn"}>{statusLabel(h.status)}</Badge> {ones > 0 && `${ones} Level 1`}</span><span className="text-ink-muted">{fmtDateTime(h.submitted_at)}</span></li>;
               })}
-              {scans.map((f) => <li key={f.id} className="flex items-center justify-between gap-2 py-2"><span>{f.form_year_label ?? "Year not given"}: {f.scan_status === "clean" && !f.quarantined ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="text-brand underline">{f.original_name}</a> : f.original_name}</span><Badge tone={f.scan_status === "clean" ? "good" : "warn"}>{f.quarantined ? "Quarantined" : statusLabel(f.scan_status)}</Badge></li>)}
+              {scans.map((f) => <li key={f.id} className="flex items-center justify-between gap-2 py-2"><span>{f.form_year_label ?? "Year not given"}: {f.scan_status === "clean" && !f.quarantined ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{f.original_name}</a> : f.original_name}</span><Badge tone={f.scan_status === "clean" ? "good" : "warn"}>{f.quarantined ? "Quarantined" : statusLabel(f.scan_status)}</Badge></li>)}
             </ul>
           )}
         </Card>
@@ -110,7 +110,7 @@ export default async function Form141Page({ params, searchParams }: { params: Pr
           </Card>
         )}
       </div>
-      <p className="mt-6 text-sm text-ink-muted"><Link href="/app/programs" className="text-brand underline">All programs</Link></p>
+      <p className="mt-6 text-sm text-ink-muted"><Link href="/app/programs" className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">All programs</Link></p>
     </>
   );
 }
