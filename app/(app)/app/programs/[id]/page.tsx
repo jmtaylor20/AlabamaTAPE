@@ -71,7 +71,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
                 const openable = f.scan_status === "clean" && !f.quarantined && !f.removed_at;
                 return (
                   <tr key={f.id} className={f.removed_at ? "opacity-60" : ""}>
-                    <td className={td}>{openable ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{f.original_name}</a> : <span>{f.original_name}</span>}<span className="block text-xs text-ink-muted">{fmtBytes(Number(f.size_bytes))}{teacher ? `, ${teacher.display_name}` : ""}{f.note ? `, ${f.note}` : ""}</span></td>
+                    <td className={td}>{openable ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">{f.original_name}</a> : <span>{f.original_name}</span>}<span className="block text-xs text-ink-muted">{fmtBytes(Number(f.size_bytes))}{teacher ? `, ${teacher.display_name}` : ""}{f.note ? `, ${f.note}` : ""}</span></td>
                     <td className={td}>{links.length ? links.map((c) => <span key={c} className="mr-1 inline-block rounded bg-brand-soft px-1 font-mono text-xs">{c}</span>) : <span className="text-ink-muted">Not linked</span>}</td>
                     <td className={td}>
                       {f.removed_at ? <Badge tone="bad">Removed</Badge> : f.quarantined ? <Badge tone="bad">Quarantined</Badge> : f.scan_status === "clean" ? <Badge tone="good">Clean</Badge> : f.scan_status === "pending" ? <Badge tone="warn">Scanning</Badge> : <Badge tone="bad">{statusLabel(f.scan_status)}</Badge>}
@@ -112,7 +112,7 @@ export default async function ProgramPage({ params, searchParams }: { params: Pr
           {otherFiles.length > 0 && (
             <>
               <h3 className="mt-4 text-sm font-semibold">Reports and prior-year forms</h3>
-              <ul className="divide-y divide-line text-sm">{otherFiles.filter((f) => !f.removed_at).map((f) => <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><span>{f.scan_status === "clean" && !f.quarantined ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{f.original_name}</a> : f.original_name} <Badge>{statusLabel(f.category)}{f.form_year_label ? ` ${f.form_year_label}` : ""}</Badge></span><Badge tone={f.scan_status === "clean" ? "good" : "warn"}>{f.quarantined ? "Quarantined" : statusLabel(f.scan_status)}</Badge></li>)}</ul>
+              <ul className="divide-y divide-line text-sm">{otherFiles.filter((f) => !f.removed_at).map((f) => <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><span>{f.scan_status === "clean" && !f.quarantined ? <a href={`/app/evidence/${f.id}`} target="_blank" rel="noopener" className="text-brand underline decoration-brand/40 underline-offset-2">{f.original_name}</a> : f.original_name} <Badge>{statusLabel(f.category)}{f.form_year_label ? ` ${f.form_year_label}` : ""}</Badge></span><Badge tone={f.scan_status === "clean" ? "good" : "warn"}>{f.quarantined ? "Quarantined" : statusLabel(f.scan_status)}</Badge></li>)}</ul>
             </>
           )}
         </Card>

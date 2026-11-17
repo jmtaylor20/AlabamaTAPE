@@ -34,7 +34,7 @@ export default async function CyclesPage({ searchParams }: { searchParams: Searc
                 const settings = (c.settings ?? {}) as { january_evidence_due?: string };
                 return (
                   <tr key={c.id}>
-                    <td className={td}><Link href={`/app/admin/cycles/${c.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{c.name}</Link></td>
+                    <td className={td}><Link href={`/app/admin/cycles/${c.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">{c.name}</Link></td>
                     <td className={td}>{yr?.label}{yr?.is_current ? " (current)" : ""}</td>
                     <td className={`${td} tabular-nums`}>{Number(c.target_percent)}%</td>
                     <td className={td}>{settings.january_evidence_due ? fmtDate(settings.january_evidence_due) : "First of the month"}</td>

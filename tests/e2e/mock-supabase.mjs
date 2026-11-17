@@ -38,58 +38,102 @@ function subjectOf(req) {
   }
 }
 
+// Riverbend County, the fabricated system the live demonstration uses.
+const HS = "00000000-0000-4000-8000-00000000c001";
+const CTC = "00000000-0000-4000-8000-00000000c002";
+const LR = "00000000-0000-4000-8000-00000000ba01";
+const PR_WELD = "00000000-0000-4000-8000-00000000ab01";
+const PR_HEALTH = "00000000-0000-4000-8000-00000000ab02";
+const catalog = { "10": "Welding", "17": "Health Science", "11": "Construction Technology", "12": "Heating, Ventilation and Air Conditioning", "13": "Information Technology Support and Service", "05": "General Agriculture" };
+const teacherOf = { "10": "Riley Blackwood", "17": "Parker Larkin", "11": "Casey Everly", "12": "Casey Calloway", "13": "Parker Blackwood" };
+const schoolOf = { "10": CTC, "17": HS, "11": CTC, "12": CTC, "13": HS, "05": HS };
+const schools = { [HS]: { id: HS, name: "Riverbend High School", school_code: "0010", school_type: "high_school", lea_id: LEA_ID, active: true }, [CTC]: { id: CTC, name: "Riverbend Career Technical Center", school_code: "6000", school_type: "career_tech_center", lea_id: LEA_ID, active: true } };
+const declared = Object.keys(catalog).map((code, i) => ({
+  id: `00000000-0000-4000-8000-0000000d${String(i).padStart(4, "0")}`, lea_id: LEA_ID, school_year_id: YEAR_ID, program_code: code, delivery_type: "LOCAL", dual_scenario: null, status: "active", vacant: code === "05", home_school_id: schoolOf[code],
+  leas: { name: "Riverbend County", system_code: "901" }, program_catalog: { name: catalog[code], cluster_code: "04", active: true }, home: { name: schools[schoolOf[code]].name, school_code: schools[schoolOf[code]].school_code },
+  declared_program_teachers: teacherOf[code] ? [{ teacher_id: `t-${code}`, teachers: { display_name: teacherOf[code] } }] : [],
+}));
+const milestones = [
+  { kind: "check_in", computed_on: "2026-10-20", override_on: null }, { kind: "notification", computed_on: "2026-11-13", override_on: null }, { kind: "evidence_due", computed_on: "2026-12-01", override_on: null },
+  { kind: "visit_start", computed_on: "2026-12-08", override_on: null }, { kind: "visit_end", computed_on: "2026-12-09", override_on: null }, { kind: "ten_day_close", computed_on: "2026-12-19", override_on: null },
+];
+const assignmentsFor = (lead, second) => [
+  { id: `a-${lead}-1`, display_name: lead, email: `${lead.toLowerCase().replace(" ", ".")}@state.example.test`, assignment_role: "lead_reviewer", revoked_at: null },
+  { id: `a-${second}-2`, display_name: second, email: `${second.toLowerCase().replace(" ", ".")}@state.example.test`, assignment_role: "reviewer", revoked_at: null },
+];
+const programReviews = [
+  { id: PR_WELD, program_code: "10", status: "released", visit_date: null, sequence: 1, finalized_at: null, program_catalog: { name: "Welding" }, review_assignments: assignmentsFor("Quinn Kingsley", "Casey Larkin"), program_review_sites: [{ id: "s-weld", school_id: CTC, director_submitted_at: null }] },
+  { id: PR_HEALTH, program_code: "17", status: "released", visit_date: null, sequence: 2, finalized_at: null, program_catalog: { name: "Health Science" }, review_assignments: assignmentsFor("Casey Larkin", "Quinn Kingsley"), program_review_sites: [{ id: "s-health", school_id: HS, director_submitted_at: null }] },
+];
+const leaReview = { id: LR, lea_id: LEA_ID, review_month: 12, review_year: 2026, status: "released", visit_start: "2026-12-08", visit_end: "2026-12-09", choice1_start: "2026-12-08", choice2_start: "2026-12-15", released_at: "2026-11-13T15:00:00Z", leas: { name: "Riverbend County", system_code: "901" }, review_cycles: { name: "2026-2027 TAPE reviews" }, milestones, program_reviews: programReviews };
+const calendarUnsorted = [
+  { id: "m1", lea_review_id: LR, lea_id: LEA_ID, lea_name: "Riverbend County", kind: "evidence_due", on_date: "2026-12-01", done: false, released: true },
+  { id: "m2", lea_review_id: LR, lea_id: LEA_ID, lea_name: "Riverbend County", kind: "visit_start", on_date: "2026-12-08", done: false, released: true },
+  { id: "m3", lea_review_id: LR, lea_id: LEA_ID, lea_name: "Riverbend County", kind: "visit_end", on_date: "2026-12-09", done: false, released: true },
+  { id: "m4", lea_review_id: LR, lea_id: LEA_ID, lea_name: "Riverbend County", kind: "ten_day_close", on_date: "2026-12-19", done: false, released: true },
+  { id: "m5", lea_review_id: "lr2", lea_id: "lea2", lea_name: "Pine Ridge City", kind: "notification", on_date: daysFromNow(4), done: false, released: false },
+  { id: "m6", lea_review_id: "lr3", lea_id: "lea3", lea_name: "Cedar Hollow County", kind: "notification", on_date: daysFromNow(18), done: false, released: false },
+];
+const calendar = [...calendarUnsorted].sort((a, b) => a.on_date.localeCompare(b.on_date));
+
 const common = {
   school_years: [{ id: YEAR_ID, label: "2026-2027", is_current: true }],
-  review_cycles: [{ name: "2026-2027 TAPE cycle" }],
-  leas: [{ id: LEA_ID, name: "Example City Schools", system_code: "999" }],
+  review_cycles: [{ name: "2026-2027 TAPE reviews" }],
+  leas: [{ id: LEA_ID, name: "Riverbend County", system_code: "901" }],
+  schools: Object.values(schools),
+  teachers: Object.entries(teacherOf).map(([code, name], i) => ({ id: `t-${code}`, display_name: name, email: `${name.toLowerCase().replace(" ", ".")}@riverbendcounty.example.test`, status: "active", alsde_teacher_id: `9${i}0${i}`, profile_id: null, teacher_years: [{ contract_type: "nine_month", first_year: false, school_years: { is_current: true } }] })),
+  declared_programs: declared,
+  calendar_items: calendar,
   declaration_windows: [],
   pips: [],
   email_drafts: [],
   desk_audits: [],
   evidence_files: [],
-  declared_programs: [],
+  form_141: [],
   review_assignments: [],
+  approved_domains: [{ domain: "riverbendcounty.example.test" }],
+  invitations: [],
+  role_grants: [],
 };
 
 const adminRest = {
   ...common,
   profiles: [{ id: ADMIN_ID, display_name: "Avery Example", status: "active" }],
   role_grants: [{ id: "g1", role: "state_admin", lea_id: null, cluster_code: null, user_id: ADMIN_ID }],
-  email_drafts: [{ id: "d1", status: "draft" }, { id: "d2", status: "approved" }],
-  pips: [{ id: "p1", status: "open", due_on: daysFromNow(-12), program_reviews: { program_code: "520101", lea_reviews: { leas: { name: "Sample County Schools" } } } }],
-  calendar_items: [
-    { id: "m1", lea_review_id: "lr1", lea_id: LEA_ID, lea_name: "Example City Schools", kind: "notification", on_date: daysFromNow(4), done: false, released: false },
-    { id: "m2", lea_review_id: "lr2", lea_id: "lea2", lea_name: "Sample County Schools", kind: "evidence_due", on_date: daysFromNow(9), done: false, released: true },
-    { id: "m3", lea_review_id: "lr2", lea_id: "lea2", lea_name: "Sample County Schools", kind: "visit_start", on_date: daysFromNow(21), done: false, released: true },
+  email_drafts: [
+    { id: "d1", status: "draft", step_key: "notification", audience: "district", subject: "TAPE review notification: Riverbend County, December 2026", to_list: ["director@riverbendcounty.example.test"], cc_list: [], created_at: daysFromNow(-1) + "T14:00:00Z", sent_at: null, lea_reviews: { leas: { name: "Riverbend County" } }, program_reviews: null },
+    { id: "d2", status: "approved", step_key: "check_in", audience: "district", subject: "TAPE review check-in: Pine Ridge City, January 2027", to_list: ["director@pineridgecity.example.test"], cc_list: [], created_at: daysFromNow(-3) + "T14:00:00Z", sent_at: null, lea_reviews: { leas: { name: "Pine Ridge City" } }, program_reviews: null },
   ],
-  lea_reviews: [],
+  pips: [{ id: "p1", status: "open", starts_on: daysFromNow(-200), due_on: daysFromNow(-12), closed_at: null, pip_goals: [{ status: "not_complete" }, { status: "complete" }, { status: "not_complete" }], pip_escalations: [{ month: 6 }], program_reviews: { id: "pr-old", program_code: "11", program_catalog: { name: "Construction Technology" }, lea_reviews: { lea_id: "lea4", leas: { name: "Lakeview City" }, review_cycles: { school_year_id: YEAR_ID } }, program_review_sites: [{ school_id: null, schools: null }] } }],
+  review_assignments: programReviews.map((p) => ({ id: `mine-${p.id}`, assignment_role: "reviewer", program_reviews: { ...p, lea_reviews: { id: LR, review_month: 12, review_year: 2026, visit_start: "2026-12-08", visit_end: "2026-12-09", released_at: leaReview.released_at, leas: { name: "Riverbend County" } } } })),
+  lea_reviews: [
+    leaReview,
+    { id: "lr2", lea_id: "lea2", review_month: 1, review_year: 2027, status: "scheduled", visit_start: "2027-01-12", visit_end: "2027-01-13", choice1_start: "2027-01-12", choice2_start: null, released_at: null, leas: { name: "Pine Ridge City", system_code: "902" }, review_cycles: { name: "2026-2027 TAPE reviews" }, milestones: [{ kind: "notification", computed_on: daysFromNow(4), override_on: null }], program_reviews: [{ status: "selected" }, { status: "selected" }, { status: "selected" }] },
+    { id: "lr3", lea_id: "lea3", review_month: 2, review_year: 2027, status: "listed", visit_start: null, visit_end: null, choice1_start: null, choice2_start: null, released_at: null, leas: { name: "Cedar Hollow County", system_code: "903" }, review_cycles: { name: "2026-2027 TAPE reviews" }, milestones: [{ kind: "notification", computed_on: daysFromNow(18), override_on: null }], program_reviews: [] },
+  ],
 };
 
 const directorRest = {
   ...common,
   profiles: [{ id: DIRECTOR_ID, display_name: "Jordan Example", status: "active" }],
-  role_grants: [{ id: "g2", role: "cte_director", lea_id: LEA_ID, cluster_code: null, user_id: DIRECTOR_ID }],
-  lea_reviews: [{
-    id: "lr1", visit_start: daysFromNow(30), visit_end: daysFromNow(31), status: "evidence_due", review_month: 2, review_year: 2027,
-    milestones: [{ kind: "evidence_due", computed_on: daysFromNow(14), override_on: null }],
-    program_reviews: [
-      { id: "pr1", program_code: "520101", status: "released", program_catalog: { name: "Business Management" }, program_review_sites: [{ director_submitted_at: null }] },
-      { id: "pr2", program_code: "510101", status: "evidence_submitted", program_catalog: { name: "Health Science" }, program_review_sites: [{ director_submitted_at: "2026-11-01T00:00:00Z" }] },
-    ],
-  }],
+  role_grants: [{ id: "g2", role: "cte_director", lea_id: LEA_ID, cluster_code: null, user_id: DIRECTOR_ID, profiles: { display_name: "Jordan Example", email: "director@riverbendcounty.example.test", status: "active" } }],
+  lea_reviews: [leaReview],
+  calendar_items: calendar.filter((c) => c.lea_id === LEA_ID),
 };
 
 const rpcs = {
   review_counts: {
     [ADMIN_ID]: [
-      { lea_id: LEA_ID, lea_name: "Example City Schools", program_code: "520101", program_name: "Business Management", cluster_code: "BMA", review_month: 2, review_year: 2027, status: "selected", released: false, finalized: false, level2: 0, level1: 0, na: 0, open_findings: 0, cleared_findings: 0, pip_status: null, pip_due: null },
-      { lea_id: "lea2", lea_name: "Sample County Schools", program_code: "510101", program_name: "Health Science", cluster_code: "HS", review_month: 1, review_year: 2027, status: "post_visit", released: true, finalized: false, level2: 0, level1: 0, na: 0, open_findings: 0, cleared_findings: 0, pip_status: null, pip_due: null },
-      { lea_id: "lea2", lea_name: "Sample County Schools", program_code: "520201", program_name: "Finance", cluster_code: "BMA", review_month: 1, review_year: 2027, status: "finalized", released: true, finalized: true, level2: 24, level1: 3, na: 2, open_findings: 3, cleared_findings: 1, pip_status: "open", pip_due: daysFromNow(-12) },
+      { lea_id: LEA_ID, lea_name: "Riverbend County", program_code: "10", program_name: "Welding", cluster_code: "04", review_month: 12, review_year: 2026, status: "released", released: true, finalized: false, level2: 0, level1: 0, na: 0, open_findings: 0, cleared_findings: 0, pip_status: null, pip_due: null },
+      { lea_id: LEA_ID, lea_name: "Riverbend County", program_code: "17", program_name: "Health Science", cluster_code: "08", review_month: 12, review_year: 2026, status: "released", released: true, finalized: false, level2: 0, level1: 0, na: 0, open_findings: 0, cleared_findings: 0, pip_status: null, pip_due: null },
+      { lea_id: "lea2", lea_name: "Pine Ridge City", program_code: "01", program_name: "CTE Engineering", cluster_code: "01", review_month: 1, review_year: 2027, status: "selected", released: false, finalized: false, level2: 0, level1: 0, na: 0, open_findings: 0, cleared_findings: 0, pip_status: null, pip_due: null },
+      { lea_id: "lea4", lea_name: "Lakeview City", program_code: "11", program_name: "Construction Technology", cluster_code: "04", review_month: 10, review_year: 2026, status: "post_visit", released: true, finalized: false, level2: 0, level1: 0, na: 0, open_findings: 0, cleared_findings: 0, pip_status: null, pip_due: null },
+      { lea_id: "lea4", lea_name: "Lakeview City", program_code: "16", program_name: "Financial Management", cluster_code: "06", review_month: 10, review_year: 2026, status: "finalized", released: true, finalized: true, level2: 24, level1: 3, na: 2, open_findings: 3, cleared_findings: 1, pip_status: "open", pip_due: daysFromNow(-12) },
     ],
     [DIRECTOR_ID]: [],
   },
   finding_counts: { [ADMIN_ID]: [], [DIRECTOR_ID]: [] },
-  my_lea_review_summary: { [ADMIN_ID]: [], [DIRECTOR_ID]: [{ lea_review_id: "lr1", review_month: 2, review_year: 2027, notification_on: daysFromNow(-10), released: true, status: "evidence_due" }] },
+  my_lea_review_summary: { [ADMIN_ID]: [], [DIRECTOR_ID]: [{ lea_review_id: LR, review_month: 12, review_year: 2026, notification_on: "2026-11-13", released: true, status: "released" }] },
   log_event: { [ADMIN_ID]: null, [DIRECTOR_ID]: null },
 };
 

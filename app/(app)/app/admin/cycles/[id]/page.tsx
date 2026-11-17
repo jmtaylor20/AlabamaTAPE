@@ -43,7 +43,7 @@ export default async function CyclePage({ params, searchParams }: { params: Prom
                 return (
                   <tr key={r.id}>
                     <td className={td}>{monthName(r.review_month)} {r.review_year}{r.is_carryover && <> <Badge tone="warn">Carryover</Badge></>}</td>
-                    <td className={td}><Link href={`/app/admin/reviews/${r.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{lea?.name}</Link> <span className="font-mono text-xs text-ink-muted">{lea?.code_is_placeholder ? "code pending" : lea?.system_code}</span></td>
+                    <td className={td}><Link href={`/app/admin/reviews/${r.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">{lea?.name}</Link> <span className="font-mono text-xs text-ink-muted">{lea?.code_is_placeholder ? "code pending" : lea?.system_code}</span></td>
                     <td className={`${td} tabular-nums`}>{programs}</td>
                     <td className={td}>{fmtDate(notif?.override_on ?? notif?.computed_on)}</td>
                     <td className={td}>{fmtRange(r.visit_start, r.visit_end)}</td>

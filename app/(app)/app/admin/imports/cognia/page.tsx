@@ -37,7 +37,7 @@ export default async function CogniaImportPage({ searchParams }: { searchParams:
             <ul className="divide-y divide-line text-sm">
               {(jobs ?? []).map((j) => {
                 const s = j.summary as { leas?: number; programs?: number };
-                return <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><Link href={`/app/admin/imports/cognia/${j.id}`} className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{j.file_name}</Link><span className="text-ink-muted">{s.leas ?? 0} systems, {s.programs ?? 0} programs, {fmtDateTime(j.created_at)}</span><Badge tone={j.status === "applied" ? "good" : j.status === "discarded" ? "neutral" : "warn"}>{j.status}</Badge></li>;
+                return <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><Link href={`/app/admin/imports/cognia/${j.id}`} className="text-brand underline decoration-brand/40 underline-offset-2">{j.file_name}</Link><span className="text-ink-muted">{s.leas ?? 0} systems, {s.programs ?? 0} programs, {fmtDateTime(j.created_at)}</span><Badge tone={j.status === "applied" ? "good" : j.status === "discarded" ? "neutral" : "warn"}>{j.status}</Badge></li>;
               })}
             </ul>
           )}

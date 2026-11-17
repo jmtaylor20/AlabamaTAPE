@@ -37,7 +37,7 @@ export default async function DeclarationsPage({ searchParams }: { searchParams:
             return (
               <tr key={l.id}>
                 <td className={`${td} font-mono`}>{l.code_is_placeholder ? "pending" : l.system_code}</td>
-                <td className={td}><Link href={`/app/admin/declarations/${l.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{l.name}</Link></td>
+                <td className={td}><Link href={`/app/admin/declarations/${l.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">{l.name}</Link></td>
                 <td className={`${td} tabular-nums`}>{counts.get(l.id) ?? 0}</td>
                 <td className={td}>{!w ? <Badge>Not opened</Badge> : w.confirmed_at ? <Badge tone="good">Confirmed {fmtDateTime(w.confirmed_at)}</Badge> : open ? <Badge tone="warn">Open until {fmtDateTime(w.closes_at)}</Badge> : <Badge>Closed</Badge>}</td>
               </tr>

@@ -42,13 +42,13 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
               const dp = lr ? (declared ?? []).find((d) => d.lea_id === leaOf.get(lr.id) && d.program_code === p.program_code && (d.home_school_id ?? null) === (site?.school_id ?? null)) : undefined;
               return (
                 <tr key={r.id}>
-                  <td className={td}>{lr ? <Link href={`/app/admin/reviews/${lr.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{lr.leas?.name}</Link> : ""}</td>
+                  <td className={td}>{lr ? <Link href={`/app/admin/reviews/${lr.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">{lr.leas?.name}</Link> : ""}</td>
                   <td className={td}><span className="font-mono text-xs">{p.program_code}</span> {p.program_catalog?.name}</td>
                   <td className={td}><Badge>{statusLabel(r.assignment_role)}</Badge></td>
                   <td className={td}>{lr ? `${monthName(lr.review_month)} ${lr.review_year}` : ""}</td>
                   <td className={td}>{p.visit_date ? fmtDate(p.visit_date) : fmtRange(lr?.visit_start, lr?.visit_end)}</td>
                   <td className={td}><Badge tone={p.finalized_at ? "good" : lr?.released_at ? "neutral" : "warn"}>{lr?.released_at ? statusLabel(p.status) : "Not released"}</Badge></td>
-                  <td className={td}>{dp && lr?.released_at ? <Link href={`/app/programs/${dp.id}/review`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">Open review</Link> : ""}</td>
+                  <td className={td}>{dp && lr?.released_at ? <Link href={`/app/programs/${dp.id}/review`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">Open review</Link> : ""}</td>
                 </tr>
               );
             })}
@@ -66,7 +66,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Sear
               return (
                 <tr key={r.id}>
                   <td className={td}>{monthName(r.review_month)} {r.review_year}</td>
-                  <td className={td}><Link href={`/app/admin/reviews/${r.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{lea?.name}</Link></td>
+                  <td className={td}><Link href={`/app/admin/reviews/${r.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">{lea?.name}</Link></td>
                   <td className={`${td} tabular-nums`}>{count}</td>
                   <td className={td}>{fmtDate(notif?.override_on ?? notif?.computed_on)}</td>
                   <td className={td}>{r.visit_start ? fmtRange(r.visit_start, r.visit_end) : r.choice1_start ? `Choices offered` : "Open"}</td>

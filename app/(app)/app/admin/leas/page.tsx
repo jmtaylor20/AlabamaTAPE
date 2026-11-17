@@ -23,7 +23,7 @@ export default async function LeasPage({ searchParams }: { searchParams: SearchP
           {(leas ?? []).map((lea) => (
             <tr key={lea.id}>
               <td className={`${td} font-mono`}>{lea.system_code}</td>
-              <td className={td}><Link href={`/app/admin/leas/${lea.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{lea.name}</Link></td>
+              <td className={td}><Link href={`/app/admin/leas/${lea.id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">{lea.name}</Link></td>
               <td className={td}>{lea.lea_type}</td>
               <td className={`${td} tabular-nums`}>{(lea.schools as unknown as { count: number }[])[0]?.count ?? 0}</td>
               <td className={`${td} tabular-nums`}>{(lea.teachers as unknown as { count: number }[])[0]?.count ?? 0}</td>

@@ -20,21 +20,21 @@ test("a State Admin sees grouped navigation and what needs them", async ({ page,
   await expect(nav.getByRole("link", { name: "Program catalog" })).toBeVisible();
   // The needs-you list is built from drafts, notifications, and overdue plans.
   await expect(page.getByText("1 message draft needs approval")).toBeVisible();
-  await expect(page.getByText("Release Example City Schools")).toBeVisible();
-  await expect(page.getByText("Improvement plan past due at Sample County Schools")).toBeVisible();
-  await expect(page.getByText("Finalize Health Science at Sample County Schools")).toBeVisible();
+  await expect(page.getByText("Release Pine Ridge City")).toBeVisible();
+  await expect(page.getByText("Improvement plan past due at Lakeview City")).toBeVisible();
+  await expect(page.getByText("Finalize Construction Technology at Lakeview City")).toBeVisible();
 });
 
 test("a CTE Director sees one card for their system", async ({ page, context }) => {
   await signInAs(context, { sub: DIRECTOR_ID, email: "director.example@example.test", aal: "aal2" });
   await page.goto("/app");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Example City Schools");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Riverbend County");
   const nav = page.getByRole("navigation", { name: "Primary" }).first();
   await expect(nav.getByText("My system", { exact: true })).toBeVisible();
   await expect(nav.getByText("Setup", { exact: true })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "Declarations" })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: /Evidence and self-scores are due/ })).toBeVisible();
-  await expect(page.getByText("1 of 2 selected programs have not been submitted", { exact: false })).toBeVisible();
+  await expect(page.getByText("2 of 2 selected programs have not been submitted", { exact: false })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open programs" })).toBeVisible();
-  await expect(page.getByText("Business Management").first()).toBeVisible();
+  await expect(page.getByText("Welding").first()).toBeVisible();
 });

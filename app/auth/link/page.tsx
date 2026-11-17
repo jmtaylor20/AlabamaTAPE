@@ -31,7 +31,7 @@ export default async function LinkPage({ searchParams }: { searchParams: Promise
         </Button>
       </form>
       <p className="mt-8 text-sm">
-        <a href="/sign-in" className="text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">
+        <a href="/sign-in" className="text-brand underline decoration-brand/40 underline-offset-2">
           Request a new code instead
         </a>
       </p>

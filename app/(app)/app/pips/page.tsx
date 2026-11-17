@@ -36,7 +36,7 @@ export default async function PipsPage({ searchParams }: { searchParams: SearchP
             return (
               <tr key={r.id}>
                 <td className={td}>{pr?.lea_reviews?.leas?.name}</td>
-                <td className={td}>{href ? <Link href={href} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2"><span className="font-mono text-xs">{pr?.program_code}</span> {pr?.program_catalog?.name}</Link> : <><span className="font-mono text-xs">{pr?.program_code}</span> {pr?.program_catalog?.name}</>}<span className="block text-xs text-ink-muted">{pr?.program_review_sites[0]?.schools?.name ?? ""}</span></td>
+                <td className={td}>{href ? <Link href={href} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2"><span className="font-mono text-xs">{pr?.program_code}</span> {pr?.program_catalog?.name}</Link> : <><span className="font-mono text-xs">{pr?.program_code}</span> {pr?.program_catalog?.name}</>}<span className="block text-xs text-ink-muted">{pr?.program_review_sites[0]?.schools?.name ?? ""}</span></td>
                 <td className={td}>{fmtDate(r.starts_on)}</td>
                 <td className={td}>{fmtDate(r.due_on)}{overdue && <> <Badge tone="bad">Past due</Badge></>}</td>
                 <td className={`${td} tabular-nums`}>{user.roles.has("leadership") && !user.isStateAdmin ? "" : `${open} open of ${r.pip_goals.length}`}</td>

@@ -36,7 +36,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 <li key={i.id} className="flex flex-wrap items-center gap-3 py-2">
                   <span className="w-28 tabular-nums">{fmtDate(i.on_date)}</span>
                   <Badge tone={i.done ? "good" : i.kind === "visit_start" || i.kind === "visit_end" ? "warn" : "neutral"}>{KIND[i.kind] ?? statusLabel(i.kind)}</Badge>
-                  {user.isStaff ? <Link href={`/app/admin/reviews/${i.lea_review_id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 decoration-brand/40 underline-offset-2">{i.lea_name}</Link> : <span className="font-semibold">{i.lea_name}</span>}
+                  {user.isStaff ? <Link href={`/app/admin/reviews/${i.lea_review_id}`} className="font-semibold text-brand underline decoration-brand/40 underline-offset-2">{i.lea_name}</Link> : <span className="font-semibold">{i.lea_name}</span>}
                   <span className="text-ink-muted">{monthName(i.review_month)} {i.review_year} review{!i.released && user.isStaff ? ", not yet released" : ""}</span>
                 </li>
               ))}
