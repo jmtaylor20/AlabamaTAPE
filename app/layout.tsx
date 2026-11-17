@@ -1,21 +1,27 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import "./globals.css";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const incoming = await headers();
-  const host = incoming.get("x-forwarded-host") ?? incoming.get("host") ?? "localhost:3000";
-  const protocol = host.includes("localhost") ? "http" : "https";
-  const image = `${protocol}://${host}/og.png`;
-  return {
-    title: "TAPE Resource Hub | Alabama CTE",
-    description: "Prepare, organize, improve—before official evidence moves into Cognia.",
-    icons: { icon: "/favicon.svg" },
-    openGraph: { title: "TAPE Resource Hub | Alabama CTE", description: "Build programs that last.", images: [{ url: image, width: 1200, height: 630 }] },
-    twitter: { card: "summary_large_image", title: "TAPE Resource Hub | Alabama CTE", description: "Build programs that last.", images: [image] },
-  };
-}
+// Every response carries a one-time script nonce, so no page may be prerendered.
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: { default: "TAPE Online", template: "%s | TAPE Online" },
+  description: "Alabama CTE program review.",
+  robots: { index: false, follow: false },
+};
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return (
+    <html lang="en">
+      <body>
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-surface focus:px-4 focus:py-2 focus:text-brand"
+        >
+          Skip to main content
+        </a>
+        {children}
+      </body>
+    </html>
+  );
 }
